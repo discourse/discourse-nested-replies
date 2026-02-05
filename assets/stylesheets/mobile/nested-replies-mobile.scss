@@ -1,0 +1,21 @@
+.nested-post-node {
+  .nested-post-replies {
+    margin-left: 20px;
+    padding-left: 10px;
+  }
+}
+
+.nested-post-reply {
+  .nested-reply-connector {
+    left: -10px;
+    width: 10px;
+  }
+}
+
+.nested-view-toggle {
+  flex-direction: column;
+
+  .btn-flat {
+    width: 100%;
+  }
+}

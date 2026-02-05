@@ -1,1 +1,6 @@
 en:
+  site_settings:
+    nested_replies_enabled: "Enable nested replies view plugin"
+    nested_replies_max_initial_replies: "Max initial replies shown"
+    nested_replies_posts_per_page: "Posts per page (nested view)"
+    nested_replies_load_more_count: "Replies loaded per 'load more' click"
