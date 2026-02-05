@@ -72,6 +72,10 @@
   display: flex;
   gap: 0.5rem;
 
+  &.highlighted {
+    animation: highlight-flash 3s ease-out;
+  }
+
   .nested-reply-connector {
     position: absolute;
     left: -20px;

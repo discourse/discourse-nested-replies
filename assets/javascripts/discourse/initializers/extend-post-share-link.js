@@ -12,7 +12,13 @@ export default {
         // Override the shareUrl computed property to generate thread URLs in nested mode
         get shareUrl() {
           const topic = this.topic;
-          const postStream = topic?.postStream;
+
+          // Guard: if no topic, fall back to parent implementation
+          if (!topic) {
+            return this._super?.() || "";
+          }
+
+          const postStream = topic.postStream;
           const postNumber = this.post_number;
 
           // If we're in nested mode, generate a thread view URL for all posts

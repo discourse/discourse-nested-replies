@@ -8,16 +8,26 @@ import NestedSortDropdown from "../../components/nested-sort-dropdown";
 
 export default class NestedViewToggle extends Component {
   @service siteSettings;
-  @service appEvents;
+  @service router;
 
   @tracked currentSort = "chronological";
 
   get shouldShow() {
-    return this.siteSettings.nested_replies_enabled;
+    if (!this.siteSettings.nested_replies_enabled) {
+      return false;
+    }
+
+    // Hide in thread mode - the thread view has its own navigation
+    const postStream = this.args.outletArgs.model?.postStream;
+    return postStream?.displayMode !== "thread";
   }
 
   get isNestedView() {
     return this.args.outletArgs.model?.postStream?.isNestedMode;
+  }
+
+  get topic() {
+    return this.args.outletArgs.model;
   }
 
   @action
@@ -32,40 +42,20 @@ export default class NestedViewToggle extends Component {
   }
 
   @action
-  async switchToChronological() {
-    const postStream = this.args.outletArgs.model?.postStream;
-    if (postStream) {
-      this.currentSort = "chronological";
-      postStream.setProperties({
-        displayMode: null,
-        nestedData: null,
-        nestedCurrentPage: 1,
-        hideTimeline: false,
-      });
-      // Reload chronological view if needed
-      if (!postStream.loaded || postStream.posts.length === 0) {
-        await postStream.refresh();
-      }
-      // Notify that view mode changed so timeline can re-check
-      this.appEvents.trigger("topic:view-mode-changed");
+  switchToChronological() {
+    const topic = this.topic;
+    if (topic) {
+      // Transition to the regular topic route
+      this.router.transitionTo("topic", topic.slug, topic.id);
     }
   }
 
   @action
-  async switchToNested() {
-    const postStream = this.args.outletArgs.model?.postStream;
-    if (postStream) {
-      this.currentSort = "chronological";
-      postStream.setProperties({
-        displayMode: "nested",
-        hideTimeline: true,
-      });
-      // Load nested data if not already loaded
-      if (!postStream.nestedData) {
-        await postStream.loadNested({ page: 1 });
-      }
-      // Notify that view mode changed so timeline can re-check
-      this.appEvents.trigger("topic:view-mode-changed");
+  switchToNested() {
+    const topic = this.topic;
+    if (topic) {
+      // Transition to the nested route
+      this.router.transitionTo("topic.nested", topic.slug, topic.id);
     }
   }
 

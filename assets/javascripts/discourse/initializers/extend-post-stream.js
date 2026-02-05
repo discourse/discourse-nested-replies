@@ -145,12 +145,6 @@ export default {
         // Override: Refresh current mode
         async refresh(opts = {}) {
           if (this.isNestedMode) {
-            // eslint-disable-next-line no-console
-            console.log("[nested-replies] refresh called", {
-              forceLoad: opts.forceLoad,
-              nearPost: opts.nearPost,
-              currentURL: window.location.href,
-            });
             // Don't refresh nested view unless explicitly forced
             // This prevents automatic refreshes after post creation
             if (opts.forceLoad) {
