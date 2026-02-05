@@ -12,3 +12,7 @@ en:
       page_title: "Page %{page} of %{total}"
       previous_page: "Previous"
       next_page: "Next"
+      thread_view:
+        viewing_thread: "Viewing Thread"
+        post_number: "Post #%{number}"
+        view_full_topic: "View Full Topic"

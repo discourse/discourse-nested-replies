@@ -119,6 +119,38 @@
   }
 }
 
+// Thread view styles
+.nested-thread-view {
+  .thread-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--primary-very-low);
+    border-radius: 8px;
+    border-left: 4px solid var(--tertiary);
+
+    .thread-view-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      .thread-view-label {
+        font-size: var(--font-down-1);
+        color: var(--primary-medium);
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      .thread-view-post-info {
+        font-size: var(--font-0);
+        color: var(--primary);
+      }
+    }
+  }
+}
+
 @keyframes highlight-flash {
   0%,
   100% {

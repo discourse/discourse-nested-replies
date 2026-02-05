@@ -34,6 +34,11 @@ after_initialize do
         :constraints => {
           id: /\d+/,
         }
+    get "/t/:slug/:id/thread/:post_number(.:format)" => "discourse_nested_replies/topics#thread",
+        :constraints => {
+          id: /\d+/,
+          post_number: /\d+/,
+        }
     get "/nested-replies/posts/:post_id/replies(.:format)" =>
           "discourse_nested_replies/topics#load_more_replies",
         :constraints => {
