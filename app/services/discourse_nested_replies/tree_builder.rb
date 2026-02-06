@@ -47,8 +47,11 @@ module DiscourseNestedReplies
       offset = (@page - 1) * @chunk_size
       top_level_posts = sorted_top_level[offset, @chunk_size] || []
 
-      # Ensure OP is always first if it exists and not already in the page
-      top_level_posts.unshift(op_post) if op_post && !top_level_posts.include?(op_post)
+      # Always ensure OP is first: remove it from the list if it exists, then prepend
+      if op_post
+        top_level_posts.delete(op_post)
+        top_level_posts.unshift(op_post)
+      end
 
       top_level_post_numbers = top_level_posts.map(&:post_number)
 
