@@ -65,17 +65,23 @@ export default class TopicThreadRoute extends DiscourseRoute {
     }
   }
 
-  resetController(controller, isExiting) {
-    super.resetController(controller, isExiting);
+  resetController(controller, isExiting, transition) {
+    super.resetController(controller, isExiting, transition);
 
     if (isExiting) {
+      const isTransitioningToNested =
+        transition?.targetName === "topic.nested";
+
       const topic = this.modelFor("topic");
       if (topic?.postStream) {
-        topic.postStream.setProperties({
-          displayMode: null,
-          hideTimeline: false,
-          threadData: null,
-        });
+        topic.postStream.set("threadData", null);
+
+        if (!isTransitioningToNested) {
+          topic.postStream.setProperties({
+            displayMode: null,
+            hideTimeline: false,
+          });
+        }
       }
     }
   }
