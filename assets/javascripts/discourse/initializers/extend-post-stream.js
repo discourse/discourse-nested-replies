@@ -20,6 +20,7 @@ export default {
           this.loadingNested = false;
           this.hideTimeline = false;
           this.nestedSort = "chronological";
+          this.threadData = null;
         },
 
         isNestedMode: equal("displayMode", "nested"),

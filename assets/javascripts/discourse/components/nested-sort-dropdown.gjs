@@ -2,21 +2,22 @@ import Component from "@glimmer/component";
 import { hash } from "@ember/helper";
 import { action } from "@ember/object";
 import ComboBox from "discourse/select-kit/components/combo-box";
+import { i18n } from "discourse-i18n";
 
 export default class NestedSortDropdown extends Component {
   get sortOptions() {
     return [
       {
         id: "chronological",
-        name: "Chronological",
+        name: i18n("nested_replies.sort.chronological"),
       },
       {
         id: "new",
-        name: "New",
+        name: i18n("nested_replies.sort.new"),
       },
       {
         id: "best",
-        name: "Best",
+        name: i18n("nested_replies.sort.best"),
       },
     ];
   }

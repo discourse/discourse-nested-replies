@@ -1,5 +1,4 @@
 import Component from "@glimmer/component";
-import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
@@ -9,8 +8,6 @@ import NestedSortDropdown from "../../components/nested-sort-dropdown";
 export default class NestedViewToggle extends Component {
   @service siteSettings;
   @service router;
-
-  @tracked currentSort = "chronological";
 
   get shouldShow() {
     if (!this.siteSettings.nested_replies_enabled) {
@@ -25,6 +22,10 @@ export default class NestedViewToggle extends Component {
     return this.args.outletArgs.model?.postStream?.isNestedMode;
   }
 
+  get currentSort() {
+    return this.args.outletArgs.model?.postStream?.nestedSort || "chronological";
+  }
+
   get topic() {
     return this.args.outletArgs.model;
   }
@@ -33,7 +34,6 @@ export default class NestedViewToggle extends Component {
   async onSortChange(sortId) {
     const postStream = this.args.outletArgs.model?.postStream;
     if (postStream?.isNestedMode) {
-      this.currentSort = sortId;
       postStream.set("nestedSort", sortId);
       postStream.set("nestedCurrentPage", 1);
       await postStream.loadNested({ page: 1, sort: sortId });

@@ -11,7 +11,7 @@ module DiscourseNestedReplies
       @topic = topic
       @guardian = guardian
       @page = [opts[:page].to_i, 1].max
-      @chunk_size = opts[:chunk_size] || DEFAULT_CHUNK_SIZE
+      @chunk_size = opts[:chunk_size] || SiteSetting.nested_replies_posts_per_page
       @post_number = opts[:post_number]&.to_i
       @sort = VALID_SORTS.include?(opts[:sort]) ? opts[:sort] : "chronological"
     end

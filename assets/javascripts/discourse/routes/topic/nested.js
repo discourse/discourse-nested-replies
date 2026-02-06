@@ -44,12 +44,6 @@ export default class TopicNestedRoute extends DiscourseRoute {
     this.composer.set("topic", model);
   }
 
-  renderTemplate() {
-    this.render("topic", {
-      controller: "topic",
-    });
-  }
-
   resetController(controller, isExiting) {
     super.resetController(controller, isExiting);
 

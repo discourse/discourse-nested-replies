@@ -4,6 +4,10 @@ en:
       view_toggle:
         chronological: "Flat"
         nested: "Nested"
+      sort:
+        chronological: "Chronological"
+        new: "New"
+        best: "Best"
       load_more_replies:
         one: "Load 1 more reply"
         other: "Load %{count} more replies"
