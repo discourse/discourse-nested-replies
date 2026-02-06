@@ -52,11 +52,43 @@ module DiscourseNestedReplies
       # Build tree for just this thread
       tree_data = build_single_thread(root_post, topic, post_number)
 
-      # Create TopicView with all post IDs for data preloading
+      # Create TopicView first with the thread data
+      # This ensures the TopicView is properly initialized before we add extra posts
       all_post_ids = []
       tree_data[:nested_posts].each do |node|
         all_post_ids << node[:post].id
         all_post_ids.concat(node[:replies].map(&:id))
+      end
+
+      # Always include the OP (post #1) if it's not already the root post
+      if root_post.post_number != 1
+        op_post = topic.posts.secured(guardian).find_by(post_number: 1)
+        if op_post
+          # Build OP tree node
+          op_replies = collect_all_replies(op_post, topic)
+          max_initial_replies = SiteSetting.nested_replies_max_initial_replies
+          paginated_op_replies = op_replies.take(max_initial_replies)
+
+          op_node = {
+            post: op_post,
+            replies: paginated_op_replies,
+            total_reply_count: op_replies.size,
+            loaded_reply_count: paginated_op_replies.size,
+            has_more_replies: op_replies.size > max_initial_replies,
+            highlighted: false,
+          }
+
+          # Prepend OP to the tree
+          tree_data[:nested_posts].unshift(op_node)
+
+          # Add OP post IDs to the TopicView
+          all_post_ids.unshift(op_post.id)
+          all_post_ids.concat(paginated_op_replies.map(&:id))
+
+          # Update metadata
+          tree_data[:meta][:total_top_level_posts] = 2
+          tree_data[:meta][:total_posts] = 1 + op_replies.size + tree_data[:meta][:total_posts]
+        end
       end
 
       @topic_view = TopicView.new(topic.id, current_user, post_ids: all_post_ids.uniq)
@@ -139,9 +171,10 @@ module DiscourseNestedReplies
           total_reply_count: all_replies.size,
           loaded_reply_count: paginated_replies.size,
           has_more_replies: has_more,
-          highlighted: root_post.post_number == highlight_post_number ||
-                       paginated_replies.any? { |r| r.post_number == highlight_post_number }
-        }
+          highlighted:
+            root_post.post_number == highlight_post_number ||
+              paginated_replies.any? { |r| r.post_number == highlight_post_number },
+        },
       ]
 
       # Build metadata
@@ -155,7 +188,7 @@ module DiscourseNestedReplies
         has_previous_page: false,
         thread_view: true, # Flag to indicate this is a thread view
         root_post_number: root_post.post_number,
-        highlight_post_number: highlight_post_number
+        highlight_post_number: highlight_post_number,
       }
 
       { nested_posts: tree, meta: meta }

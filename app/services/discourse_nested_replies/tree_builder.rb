@@ -37,12 +37,18 @@ module DiscourseNestedReplies
       all_top_level_posts =
         @topic.posts.secured(@guardian).where("reply_to_post_number IS NULL").to_a
 
+      # Always ensure the OP (post #1) is included
+      op_post = all_top_level_posts.find { |p| p.post_number == 1 }
+
       # Sort based on the chosen method
       sorted_top_level = sort_top_level_posts(all_top_level_posts)
 
       # Apply pagination
       offset = (@page - 1) * @chunk_size
       top_level_posts = sorted_top_level[offset, @chunk_size] || []
+
+      # Ensure OP is always first if it exists and not already in the page
+      top_level_posts.unshift(op_post) if op_post && !top_level_posts.include?(op_post)
 
       top_level_post_numbers = top_level_posts.map(&:post_number)
 

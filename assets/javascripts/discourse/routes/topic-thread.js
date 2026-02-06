@@ -1,6 +1,6 @@
-import DiscourseRoute from "discourse/routes/discourse";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
+import DiscourseRoute from "discourse/routes/discourse";
 
 export default class TopicThreadRoute extends DiscourseRoute {
   @service store;
@@ -8,7 +8,10 @@ export default class TopicThreadRoute extends DiscourseRoute {
 
   async model(params) {
     // eslint-disable-next-line no-console
-    console.log("[topic-thread route] model hook called - THIS IS THE ROOT LEVEL FILE", { params });
+    console.log(
+      "[topic-thread route] model hook called - THIS IS THE ROOT LEVEL FILE",
+      { params }
+    );
 
     const topic = this.modelFor("topic");
     const postNumber = parseInt(params.post_number, 10);
@@ -62,7 +65,9 @@ export default class TopicThreadRoute extends DiscourseRoute {
     // If the topic isn't fully loaded yet, wait for the postStream to load
     if (!model.topic.title || !model.topic.details) {
       // eslint-disable-next-line no-console
-      console.log("[topic-thread route] topic not fully loaded, waiting for postStream to load");
+      console.log(
+        "[topic-thread route] topic not fully loaded, waiting for postStream to load"
+      );
 
       // The postStream.refresh() will load the topic details
       if (!postStream.loaded) {
@@ -83,7 +88,7 @@ export default class TopicThreadRoute extends DiscourseRoute {
   setupController(controller, model) {
     // eslint-disable-next-line no-console
     console.log("[topic-thread route] setupController called", {
-      controller: controller,
+      controller,
       controllerName: controller?.constructor?.name,
       modelTopicId: model?.topic?.id,
       modelTopicTitle: model?.topic?.title,
@@ -91,12 +96,12 @@ export default class TopicThreadRoute extends DiscourseRoute {
 
     super.setupController(controller, model);
 
-    // Get the parent topic controller and set it up properly
+    //topic controller and set it up properly
     const topicController = this.controllerFor("topic");
 
     // eslint-disable-next-line no-console
     console.log("[topic-thread route] got topic controller", {
-      topicController: topicController,
+      topicController,
       isSameAsController: topicController === controller,
       topicControllerModel: topicController.model?.id,
     });
@@ -136,7 +141,9 @@ export default class TopicThreadRoute extends DiscourseRoute {
       });
 
       // eslint-disable-next-line no-console
-      console.log("[topic-thread route] postStream configured with thread data");
+      console.log(
+        "[topic-thread route] postStream configured with thread data"
+      );
     }
   }
 
