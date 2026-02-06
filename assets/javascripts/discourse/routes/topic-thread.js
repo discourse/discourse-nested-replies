@@ -162,20 +162,34 @@ export default class TopicThreadRoute extends DiscourseRoute {
     });
   }
 
-  resetController(controller, isExiting) {
-    super.resetController(controller, isExiting);
+  resetController(controller, isExiting, transition) {
+    super.resetController(controller, isExiting, transition);
 
     if (isExiting) {
+      // Check if we're transitioning to the nested route - if so, don't clear displayMode
+      const targetRouteName = transition?.to?.name;
+      const isTransitioningToNested = targetRouteName === "topic.nested";
+
+      // eslint-disable-next-line no-console
+      console.log("[topic-thread route] reset controller on exit", {
+        targetRoute: targetRouteName,
+        isTransitioningToNested,
+      });
+
       const topic = controller.model?.topic;
       if (topic?.postStream) {
-        topic.postStream.setProperties({
-          displayMode: null,
-          hideTimeline: false,
-          threadData: null,
-        });
+        if (isTransitioningToNested) {
+          // Only clear thread-specific data, keep displayMode for nested route
+          topic.postStream.set("threadData", null);
+        } else {
+          // Clear everything when exiting to non-nested routes
+          topic.postStream.setProperties({
+            displayMode: null,
+            hideTimeline: false,
+            threadData: null,
+          });
+        }
       }
-      // eslint-disable-next-line no-console
-      console.log("[topic-thread route] reset controller on exit");
     }
   }
 }

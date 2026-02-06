@@ -91,6 +91,6 @@ export default class TopicThreadController extends Controller {
   @action
   viewFullTopic() {
     // Navigate back to the nested view of the full topic
-    this.router.transitionTo("topic", this.topic.slug, this.topic.id);
+    this.router.transitionTo("topic.nested", this.topic.slug, this.topic.id);
   }
 }
