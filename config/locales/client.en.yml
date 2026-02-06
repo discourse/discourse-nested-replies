@@ -7,11 +7,6 @@ en:
       load_more_replies:
         one: "Load 1 more reply"
         other: "Load %{count} more replies"
-      reply_indicator: "Reply to"
-      nested_thread_indicator: "This post has nested replies"
-      page_title: "Page %{page} of %{total}"
-      previous_page: "Previous"
-      next_page: "Next"
       thread_view:
         viewing_thread: "Viewing Thread"
         post_number: "Post #%{number}"

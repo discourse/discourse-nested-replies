@@ -14,9 +14,6 @@ register_asset "stylesheets/common/nested-replies.scss"
 register_asset "stylesheets/desktop/nested-replies-desktop.scss", :desktop
 register_asset "stylesheets/mobile/nested-replies-mobile.scss", :mobile
 
-register_svg_icon "indent"
-register_svg_icon "outdent"
-
 module ::DiscourseNestedReplies
   PLUGIN_NAME = "discourse-nested-replies"
 end

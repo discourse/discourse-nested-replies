@@ -26,15 +26,7 @@ module DiscourseNestedReplies
       post.topic = @topic_view.topic if @topic_view
 
       serializer = PostSerializer.new(post, scope: scope, root: false)
-
-      # Set topic_view like PostStreamSerializerMixin does (line 65)
-      # This enables PostSerializer to access:
-      # - all_post_actions (PostAction.counts_for)
-      # - link_counts (TopicLink.counts_for)
-      # - bookmarks (Bookmark.for_user_in_topic)
-      # - And all other preloaded data
       serializer.topic_view = @topic_view if @topic_view
-
       serializer.as_json
     end
   end

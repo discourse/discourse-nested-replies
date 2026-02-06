@@ -17,7 +17,6 @@ export default class NestedViewToggle extends Component {
       return false;
     }
 
-    // Hide in thread mode - the thread view has its own navigation
     const postStream = this.args.outletArgs.model?.postStream;
     return postStream?.displayMode !== "thread";
   }
@@ -33,7 +32,7 @@ export default class NestedViewToggle extends Component {
   @action
   async onSortChange(sortId) {
     const postStream = this.args.outletArgs.model?.postStream;
-    if (postStream && postStream.isNestedMode) {
+    if (postStream?.isNestedMode) {
       this.currentSort = sortId;
       postStream.set("nestedSort", sortId);
       postStream.set("nestedCurrentPage", 1);
@@ -45,7 +44,6 @@ export default class NestedViewToggle extends Component {
   switchToChronological() {
     const topic = this.topic;
     if (topic) {
-      // Transition to the regular topic route
       this.router.transitionTo("topic", topic.slug, topic.id);
     }
   }
@@ -54,7 +52,6 @@ export default class NestedViewToggle extends Component {
   switchToNested() {
     const topic = this.topic;
     if (topic) {
-      // Transition to the nested route
       this.router.transitionTo("topic.nested", topic.slug, topic.id);
     }
   }

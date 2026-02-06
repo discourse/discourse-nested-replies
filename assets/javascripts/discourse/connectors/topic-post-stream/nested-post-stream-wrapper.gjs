@@ -27,31 +27,13 @@ export default class NestedPostStreamWrapper extends Component {
 
   get shouldRenderNested() {
     const postStream = this.args.outletArgs?.postStream;
-    const shouldRender =
-      postStream?.isNestedMode && postStream?.nestedData?.nested_posts;
-
-    // eslint-disable-next-line no-console
-    console.log("[nested-post-stream-wrapper] shouldRenderNested", {
-      hasOutletArgs: !!this.args.outletArgs,
-      hasPostStream: !!postStream,
-      isNestedMode: postStream?.isNestedMode,
-      displayMode: postStream?.displayMode,
-      isThreadMode: this.isThreadMode,
-      hasNestedData: !!postStream?.nestedData,
-      hasNestedPosts: !!postStream?.nestedData?.nested_posts,
-      shouldRender,
-      canCreatePost: this.args.outletArgs?.canCreatePost,
-      replyToPost: this.args.outletArgs?.replyToPost,
-      outletArgKeys: Object.keys(this.args.outletArgs || {}),
-    });
-
-    return shouldRender;
+    return postStream?.isNestedMode && postStream?.nestedData?.nested_posts;
   }
 
   @action
   async loadMoreTopLevelPosts() {
     const postStream = this.args.outletArgs.postStream;
-    if (postStream && postStream.loadMoreNested) {
+    if (postStream?.loadMoreNested) {
       await postStream.loadMoreNested();
     }
   }
@@ -71,7 +53,6 @@ export default class NestedPostStreamWrapper extends Component {
     try {
       const postStream = this.args.outletArgs.postStream;
 
-      // Determine which data structure to use based on mode
       const isThreadMode = this.isThreadMode;
       const nestedPosts = isThreadMode
         ? postStream.threadData.nestedPosts
@@ -83,8 +64,6 @@ export default class NestedPostStreamWrapper extends Component {
       }
 
       const node = nestedPosts[nodeIndex];
-
-      // Get current offset or start from loaded count
       const offset = this.replyOffsets[postId] || node.loaded_reply_count;
       const limit = this.siteSettings.nested_replies_load_more_count;
 
@@ -95,7 +74,6 @@ export default class NestedPostStreamWrapper extends Component {
         }
       );
 
-      // Append new replies to existing ones
       const newReplies = result.posts.map((reply) =>
         this.store.createRecord("post", {
           ...reply,
@@ -103,7 +81,6 @@ export default class NestedPostStreamWrapper extends Component {
         })
       );
 
-      // Create updated node with new replies
       const updatedNode = {
         ...node,
         replies: [...node.replies, ...newReplies],
@@ -111,7 +88,6 @@ export default class NestedPostStreamWrapper extends Component {
         has_more_replies: result.has_more_replies,
       };
 
-      // Update the entire data structure to trigger reactivity
       const updatedNestedPosts = [...nestedPosts];
       updatedNestedPosts[nodeIndex] = updatedNode;
 
@@ -127,20 +103,19 @@ export default class NestedPostStreamWrapper extends Component {
         });
       }
 
-      // Update offset for next load
       this.replyOffsets = {
         ...this.replyOffsets,
         [postId]: result.loaded_count,
       };
     } finally {
-      this.loadingMoreReplies = { ...this.loadingMoreReplies };
-      delete this.loadingMoreReplies[postId];
+      const updated = { ...this.loadingMoreReplies };
+      delete updated[postId];
+      this.loadingMoreReplies = updated;
     }
   }
 
   <template>
     {{#if this.isThreadMode}}
-      {{! Thread mode - render thread view directly here }}
       <div class="nested-thread-view">
         <div class="thread-view-header">
           <div class="thread-view-info">

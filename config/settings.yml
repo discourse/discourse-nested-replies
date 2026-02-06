@@ -2,22 +2,18 @@ plugins:
   nested_replies_enabled:
     default: false
     client: true
-    description: "Enable nested/threaded reply view plugin"
 
   nested_replies_posts_per_page:
     default: 20
     min: 10
     max: 50
-    description: "Number of top-level posts per page in nested view"
 
   nested_replies_max_initial_replies:
     default: 3
     min: 3
     max: 50
-    description: "Maximum number of replies to show initially before 'load more'"
 
   nested_replies_load_more_count:
     default: 10
     min: 3
     max: 50
-    description: "Number of replies to load when clicking 'load more' in a nested thread"

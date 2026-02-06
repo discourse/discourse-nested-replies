@@ -1,38 +1,10 @@
 .nested-post-stream {
   max-width: 100%;
 
-  .nested-stream-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background: var(--primary-very-low);
-    border-radius: 8px;
-    margin-bottom: 1rem;
-
-    .nested-page-info {
-      font-size: var(--font-down-1);
-      color: var(--primary-medium);
-    }
-  }
-
   .nested-posts-container {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-  }
-
-  .nested-stream-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 2rem 0;
-
-    .page-numbers {
-      font-size: var(--font-0);
-      font-weight: 500;
-    }
   }
 }
 
@@ -41,10 +13,6 @@
 
   &.highlighted {
     animation: highlight-flash 3s ease-out;
-  }
-
-  .nested-post-parent {
-    // Use existing post styles
   }
 
   .nested-post-replies {
@@ -115,7 +83,7 @@
   }
 }
 
-// Hide timeline progress elements when in nested mode
+// Hide timeline progress when in nested mode
 .topic-navigation:not(.with-timeline, .with-topic-progress) {
   .progress-back-container,
   #topic-progress {
@@ -123,7 +91,6 @@
   }
 }
 
-// Thread view styles
 .nested-thread-view {
   .thread-view-header {
     display: flex;
