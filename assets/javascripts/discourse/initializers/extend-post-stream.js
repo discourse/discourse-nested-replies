@@ -186,6 +186,10 @@ export default {
             return;
           }
 
+          if (!post.topic) {
+            post.set("topic", this.topic);
+          }
+
           if (post.id && !this._identityMap[post.id]) {
             this._identityMap[post.id] = post;
           }
