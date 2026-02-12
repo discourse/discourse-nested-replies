@@ -1,0 +1,372 @@
+// ── Top-level nested view ──────────────────────────────────────────
+.nested-view {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1em;
+
+  &__header {
+    margin-bottom: 1em;
+    padding-bottom: 0.75em;
+    border-bottom: 1px solid var(--primary-low);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-up-3);
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1em;
+    margin-bottom: 1em;
+  }
+
+  &__flat-link {
+    font-size: var(--font-down-1);
+    white-space: nowrap;
+  }
+
+  &__op {
+    margin-bottom: 1.5em;
+    padding: 1em;
+    background: var(--primary-very-low);
+    border: 1px solid var(--primary-low);
+    border-radius: var(--d-border-radius);
+  }
+
+  &__op-row {
+    display: flex;
+    gap: 0.75em;
+  }
+
+  &__op-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__op-content {
+    margin-top: 0.5em;
+  }
+
+  &__op-menu {
+    margin: 0.25em 0;
+  }
+
+  &__roots {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__empty {
+    padding: 2em;
+    text-align: center;
+    color: var(--primary-medium);
+    font-size: var(--font-up-1);
+  }
+
+  &__new-replies {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1em;
+  }
+
+  &__load-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 1em;
+  }
+}
+
+// ── Sort selector ──────────────────────────────────────────────────
+.nested-sort-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+
+  &__label {
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+    margin-right: 0.25em;
+  }
+
+  &__option {
+    font-size: var(--font-down-1);
+    padding: 0.25em 0.5em;
+    color: var(--primary-medium);
+
+    &--active {
+      color: var(--tertiary);
+      font-weight: bold;
+    }
+  }
+}
+
+// ── Nested post (single comment in tree) ───────────────────────────
+.nested-post {
+  // Height from post top to avatar center, used for connector placement.
+  // article padding (0.5em) + avatar center (24px)
+  --connector-top: calc(0.5em + 24px);
+  position: relative;
+  padding-left: 20px;
+
+  // Nested posts use padding (not margin) so depth lines are continuous
+  &:not(.--depth-0) {
+    margin-top: 0;
+    padding-top: 0.25em;
+  }
+
+  &.--depth-0 {
+    padding-left: 0;
+    border-bottom: 1px solid var(--primary-low);
+    padding-bottom: 0.75em;
+    margin-top: 0.5em;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // Depth line (clickable to collapse subtree)
+  &__depth-line {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 1;
+
+    // Vertical line
+    &::after {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      border-radius: 1px;
+      background: var(--primary-low);
+      transition: background-color 0.15s ease;
+    }
+
+    // Horizontal connector branching to post content
+    &::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: var(--connector-top);
+      width: 10px;
+      height: 2px;
+      border-radius: 1px;
+      background: var(--primary-low);
+      transition: background-color 0.15s ease;
+    }
+
+    &:hover,
+    &:focus-visible {
+      outline: none;
+
+      &::after,
+      &::before {
+        background: var(--tertiary);
+      }
+    }
+  }
+
+  // Last sibling: vertical line stops at the connector (no orphan tail)
+  &:last-child > .nested-post__depth-line::after {
+    bottom: auto;
+    height: var(--connector-top);
+  }
+
+  &__article {
+    padding: 0.5em 0;
+
+    .topic-avatar {
+      border-top: none;
+    }
+  }
+
+  &__row {
+    display: flex;
+    gap: 0.5em;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  &__op-badge {
+    font-size: var(--font-down-2);
+    font-weight: bold;
+    color: var(--tertiary);
+    background: var(--tertiary-very-low);
+    border: 1px solid var(--tertiary-low);
+    border-radius: var(--d-border-radius);
+    padding: 0.1em 0.4em;
+    line-height: 1;
+  }
+
+  &__content {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+  }
+
+  &__menu {
+    margin: 0.25em 0;
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    font-size: var(--font-down-1);
+  }
+
+  &__expand-btn {
+    color: var(--tertiary);
+    font-size: var(--font-down-1);
+    padding: 0.25em 0.5em;
+  }
+
+  &__continue-link {
+    color: var(--tertiary);
+    font-weight: bold;
+  }
+
+  // Depth-based indentation
+  @for $i from 1 through 10 {
+    &.--depth-#{$i} {
+      margin-left: 0.5em;
+    }
+  }
+}
+
+// ── Children container ─────────────────────────────────────────────
+.nested-post-children {
+  &__load-more {
+    margin: 0.5em 0 0.5em 20px;
+    color: var(--tertiary);
+    font-size: var(--font-down-1);
+  }
+}
+
+// ── Context view ──────────────────────────────────────────────────
+.nested-context-view {
+  &__nav {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    margin-bottom: 1em;
+  }
+
+  &__full-thread {
+    font-size: var(--font-down-1);
+    color: var(--tertiary);
+  }
+
+  &__parent-context {
+    font-size: var(--font-down-1);
+    color: var(--tertiary);
+  }
+}
+
+// ── Topic connector link ───────────────────────────────────────────
+.nested-view-link {
+  font-size: var(--font-down-1);
+  display: block;
+  margin-top: 0.5em;
+}
+
+// ── Deep-link highlight animation ──────────────────────────────────
+.nested-post--highlighted {
+  animation: nested-post-highlight 2s ease-out;
+}
+
+@keyframes nested-post-highlight {
+  0% {
+    background-color: var(--tertiary-low);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+// ── Responsive (mobile) ────────────────────────────────────────────
+.mobile-view {
+  .nested-view {
+    padding: 0.5em;
+
+    &__title {
+      font-size: var(--font-up-1);
+    }
+
+    &__controls {
+      flex-wrap: wrap;
+    }
+
+    &__op {
+      padding: 0.5em;
+    }
+
+    &__op-row {
+      gap: 0.5em;
+    }
+  }
+
+  .nested-post {
+    padding-left: 14px;
+
+    &.--depth-0 {
+      padding-left: 0;
+    }
+
+    &__depth-line {
+      width: 14px;
+
+      &::after {
+        left: 5px;
+      }
+
+      &::before {
+        left: 5px;
+        width: 7px;
+      }
+    }
+
+    &__header {
+      flex-wrap: wrap;
+    }
+
+    &__content {
+      overflow-x: auto;
+    }
+
+    @for $i from 1 through 10 {
+      &.--depth-#{$i} {
+        margin-left: 0.125em;
+      }
+    }
+  }
+
+  .nested-sort-selector {
+    flex-wrap: wrap;
+  }
+
+  .nested-context-view__nav {
+    flex-wrap: wrap;
+  }
+}
