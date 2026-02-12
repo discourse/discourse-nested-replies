@@ -450,11 +450,13 @@ Loads and caches nested view data. See “Caching & Performance Strategy” sect
 
 **Plugin interception — automatic redirect**:
 
-* An Ember instance-initializer watches route transitions to `topic.fromParamsNear`
-* Before the flat view renders, checks: is nested view the default for this category?
+* Primary: `DiscourseURL.routeTo` monkey-patch rewrites `/t/slug/id/post_number` to `/nested/slug/id` before the URL enters the router
+* Fallback: `routeWillChange` event on the router service intercepts transitions to `topic.fromParams`/`topic.fromParamsNear` **before** model hooks run, aborts the transition, and redirects to nested. Uses `topicTrackingState.findState()` + `session.topicList` for category lookup.
+* Checks: is nested view the default for this category?
   * Priority: user localStorage preference > category custom field > site setting
-* If yes: `replaceWith('nested', slug, topic_id, { queryParams: { post_number: N } })`
-* If no: let flat view render normally. The flat view’s toggle button still offers “View in nested view”
+* **Post number is intentionally dropped** during redirect — the post_number in `/t/slug/123/15` is a "resume reading" position from the topic list, which is meaningless in a non-chronological tree view. Redirects always go to `/nested/slug/id` (roots view).
+* If nested is not the default: let flat view render normally. The flat view's toggle button still offers "View in nested view"
+* **Known limitation**: Notification deep-links (which also use `/t/slug/id/post_number`) currently lose the post_number on redirect, so the user lands on the roots view instead of seeing the specific post in context. A future improvement should distinguish notification clicks from topic-list clicks to preserve deep-linking for notifications.
 
 **Query param preservation via `register_modifier`**: Discourse’s topic URL canonicalization (slug correction, topic moves) strips unknown query params. We use `register_modifier(:redirect_to_correct_topic_additional_query_parameters)` in `plugin.rb` to add `post_number` to the allowlist. Without this, navigating to `/nested/old-slug/123?post_number=15` where the slug has changed would redirect to `/nested/new-slug/123` and lose the `?post_number=15` deep-link target:
 
@@ -648,7 +650,7 @@ plugins/discourse-nested-view/
 │   │       │   └── topic-navigation/               # "View as nested" link on flat topic view
 │   │       │       └── nested-view-link.gjs
 │   │       ├── api-initializers/
-│   │       │   └── nested-view-redirect.js         # Rewrites /t/ URLs to /nested/ at routeTo level (primary) + routeDidChange fallback; blocks post-save nav
+│   │       │   └── nested-view-redirect.js         # Rewrites /t/ URLs to /nested/ at routeTo level (primary) + routeWillChange fallback; drops post_number on redirect; blocks post-save nav
 │   │       ├── routes/
 │   │       │   └── nested.js                       # Route handler (PreloadStore + AJAX + tree building)
 │   │       ├── controllers/
@@ -717,7 +719,7 @@ plugins/discourse-nested-view/
 
 ### Phase 3: Notifications, Deep-Linking, Live Updates
 
-- [x] 1. API initializer (`api-initializers/nested-view-redirect.js`): primary interception at `DiscourseURL.routeTo` rewrites `/t/slug/id` URLs to `/nested/slug/id` before they enter the router — preventing intermediate flat-view history entries on browser back. Uses `session.topicList` to look up topic category for per-category default check, and `Category.findById` for category setting. Falls back to `routeDidChange` handler (redirects `topic.fromParams`/`topic.fromParamsNear` via `router.replaceWith`) for direct URL navigation where topic isn't cached. Tracks `previousRouteName` to avoid re-redirecting from nested. Also blocks post-save navigation to flat view by intercepting `routeTo` after `composer:saved` fires on the nested route.
+- [x] 1. API initializer (`api-initializers/nested-view-redirect.js`): primary interception at `DiscourseURL.routeTo` rewrites `/t/slug/id` URLs to `/nested/slug/id` before they enter the router — preventing intermediate flat-view history entries on browser back. Uses `session.topicList` to look up topic category for per-category default check, and `Category.findById` for category setting. Falls back to `routeWillChange` handler that aborts `topic.fromParams`/`topic.fromParamsNear` transitions **before model hooks run** (avoids loading the full post stream) and redirects via `router.transitionTo`. Uses `topicTrackingState.findState()` + `session.topicList` for category lookup. Post number from topic list URLs (resume-reading position) is intentionally dropped — meaningless in non-chronological tree view. Also blocks post-save navigation to flat view by intercepting `routeTo` after `composer:saved` fires on the nested route. **Known limitation**: notification deep-links also lose post_number on redirect (see §10).
 - [x] 2. `<NestedContextView>` component: builds ancestor chain as a nested tree (ancestor[0] wraps ancestor[1] wraps ... target), rendering via NestedPost recursion. Each ancestor has 1 preloaded child (the next in chain); users can expand to see siblings via "load more". Scroll-to-target via `schedule("afterRender")` + `requestAnimationFrame`.
 - [x] 3. Context endpoint integration in route handler: `post_number` query param now has `refreshModel: true`. When present, route fetches from `/context/:post_number` instead of `/roots`. `_processContextResponse` builds the ancestor chain and returns `contextMode: true` model.
 - [x] 4. Scroll-to + CSS highlight animation: NestedContextView's constructor schedules `_scrollToTarget()` after render, which finds `[data-post-number]` element, adds `nested-post--highlighted` class, and calls `scrollIntoView({ behavior: "smooth", block: "center" })`.
@@ -768,7 +770,7 @@ plugins/discourse-nested-view/
 | **Plugin N+1 mitigation** | Batch precompute reactions + preload plugin associations | discourse-reactions' per-post COUNT query replaced with single batch SQL. Plugin associations (post_actions, reactions) preloaded via `ActiveRecord::Associations::Preloader`. Results stored on `post.precomputed_reactions` and short-circuited via prepend on `PostSerializer` (not `ReactionsSerializerHelpers` — load order dependent). |
 | **View toggle** | “View as nested” link via topic connector on flat view; “View as flat” link in nested view header | Each view links to the other. Nested view has its own route/template. |
 | **Default view control** | Site setting + category custom field + user preference (localStorage) | Priority: user choice > category setting > site setting > flat. |
-| **Notification navigation** | API initializer intercepts at `DiscourseURL.routeTo` (primary) and `routeDidChange` (fallback), rewrites `/t/` URLs to `/nested/` | Seamless — no flash of flat view, no intermediate history entry. `routeTo` intercept uses `session.topicList` + `Category.findById` for category lookup. `routeDidChange` fallback for direct URL navigation. |
+| **Notification navigation** | API initializer intercepts at `DiscourseURL.routeTo` (primary) and `routeWillChange` (fallback), rewrites `/t/` URLs to `/nested/` | Seamless — no flash of flat view, no post stream loading. `routeTo` intercept uses `session.topicList` + `Category.findById` for category lookup. `routeWillChange` fallback aborts transition before model hooks, uses `topicTrackingState` + `session.topicList` for category. Post number (resume-reading position) intentionally dropped on redirect. **Known limitation**: notification deep-links also lose post_number — future work to distinguish notification clicks from topic-list clicks. |
 | **Live updates** | Subscribe to existing `/topic/{id}` MessageBus channel | No custom channel needed. Same data Discourse already publishes. Buffer + batch-fetch for rapid posting. |
 | **Post identity** | All views share Ember Store’s WeakValueMap identity map | Same post object in flat view, nested view, and context view. GC-friendly. No duplicated data. |
 | **Reply count caching** | Dedicated `nested_view_post_stats` table | Plugin-owned, clean uninstall, single-query batch loads, maintained via Post callbacks. |

@@ -4,12 +4,8 @@ import Category from "discourse/models/category";
 
 const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?(?:\?(.*))?$/;
 
-function buildNestedPath(slug, topicId, postNumber) {
-  let path = `/nested/${slug}/${topicId}`;
-  if (postNumber) {
-    path += `?post_number=${postNumber}`;
-  }
-  return path;
+function buildNestedPath(slug, topicId) {
+  return `/nested/${slug}/${topicId}`;
 }
 
 function isNestedDefault(siteSettings, categoryId) {
@@ -54,7 +50,7 @@ export default apiInitializer((api) => {
 
     const match = TOPIC_URL_RE.exec(path);
     if (match) {
-      const [, slug, topicId, postNumber, queryString] = match;
+      const [, slug, topicId, , queryString] = match;
 
       if (queryString) {
         const params = new URLSearchParams(queryString);
@@ -75,7 +71,9 @@ export default apiInitializer((api) => {
       }
 
       if (isNestedDefault(siteSettings, categoryId)) {
-        const nestedPath = buildNestedPath(slug, topicId, postNumber);
+        // Drop the post_number — it's a "resume reading" position from
+        // the topic list which is meaningless in a non-chronological tree view.
+        const nestedPath = buildNestedPath(slug, topicId);
         return originalRouteTo.call(DiscourseURL, nestedPath, opts);
       }
     }
@@ -84,51 +82,46 @@ export default apiInitializer((api) => {
   };
 
   // Fallback: if a topic URL wasn't intercepted in routeTo (e.g. direct
-  // navigation where we didn't have the category cached), redirect after
-  // the topic route loads and we can inspect the model.
-  let previousRouteName = null;
+  // navigation where we didn't have the category cached), intercept before
+  // the topic route's model hook runs to avoid loading the full post stream.
+  const topicTrackingState = api.container.lookup(
+    "service:topic-tracking-state"
+  );
 
-  router.on("routeDidChange", () => {
-    const routeName = router.currentRouteName;
-
-    if (
-      routeName === "topic.fromParams" ||
-      routeName === "topic.fromParamsNear"
-    ) {
-      if (previousRouteName?.startsWith("nested")) {
-        previousRouteName = routeName;
-        return;
-      }
-
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has("flat")) {
-        previousRouteName = routeName;
-        return;
-      }
-
-      const topicController = api.container.lookup("controller:topic");
-      const topic = topicController?.model;
-      if (!topic) {
-        previousRouteName = routeName;
-        return;
-      }
-
-      if (!isNestedDefault(siteSettings, topic.category_id)) {
-        previousRouteName = routeName;
-        return;
-      }
-
-      const nearPost =
-        routeName === "topic.fromParamsNear"
-          ? router.currentRoute?.params?.nearPost
-          : null;
-      const queryParams = nearPost ? { post_number: nearPost } : {};
-
-      previousRouteName = routeName;
-      router.replaceWith("nested", topic.slug, topic.id, { queryParams });
+  router.on("routeWillChange", (transition) => {
+    const toName = transition.to?.name;
+    if (toName !== "topic.fromParams" && toName !== "topic.fromParamsNear") {
       return;
     }
 
-    previousRouteName = routeName;
+    if (router.currentRouteName?.startsWith("nested")) {
+      return;
+    }
+
+    const topicParams = transition.to.parent?.params;
+    if (!topicParams) {
+      return;
+    }
+
+    const topicId = parseInt(topicParams.id, 10);
+    const slug = topicParams.slug;
+
+    let categoryId;
+    const trackedState = topicTrackingState.findState(topicId);
+    if (trackedState) {
+      categoryId = trackedState.category_id;
+    } else {
+      const topic = session.topicList?.topics?.find((t) => t.id === topicId);
+      if (topic) {
+        categoryId = topic.category_id;
+      }
+    }
+
+    if (!isNestedDefault(siteSettings, categoryId)) {
+      return;
+    }
+
+    transition.abort();
+    router.transitionTo("nested", slug, topicId);
   });
 });
