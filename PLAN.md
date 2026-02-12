@@ -90,6 +90,8 @@ These specific plugin API methods should be used throughout the implementation r
 | **PostMetaData** | `frontend/discourse/app/components/post/meta-data.gjs` | Username, flair, timestamp |
 | **PostCookedHtml** | `frontend/discourse/app/components/post/cooked-html.gjs` | Rendered post content |
 | **PostMenu** | `frontend/discourse/app/components/post/menu.gjs` | Action buttons (like, reply, share, flag, bookmark, etc.) |
+| **TopicTitleEditor** | `frontend/discourse/app/components/topic-title-editor.gjs` | Title text field for topic editing |
+| **TopicCategoryTagEditor** | `frontend/discourse/app/components/topic-category-tag-editor.gjs` | Shared category chooser + tag chooser + save/cancel controls for topic editing (used by both core topic view and nested views) |
 | **PostLinks** | `frontend/discourse/app/components/post/links.gjs` | Link display |
 | **DButton** | `frontend/discourse/app/components/d-button.gjs` | Standard button component |
 | **ajax utility** | `frontend/discourse/app/lib/ajax.js` | API calls |
@@ -392,14 +394,14 @@ Loads and caches nested view data. See “Caching & Performance Strategy” sect
 
 **Contains**:
 
-* Topic header (title, category, tags)
+* Topic header (title, category, tags) — editing uses if/else swap: `TopicTitleEditor` + `TopicCategoryTagEditor` (shared core component) replace the display title/category when editing, matching flat view behavior
 * OP post rendered prominently
-* Sort selector dropdown (Top/New/Old)
+* Sort selector (Top/New/Old) aligned left, "View as flat" link aligned right
 * Root posts list → each rendered via `<NestedPost>`
-* “Load more” button for root pagination
+* Infinite scroll for root pagination via `<LoadMore>`
 * Link to switch back to flat view
 
-**Reuses**: Topic model, DButton, ConditionalLoadingSpinner
+**Reuses**: Topic model, TopicTitleEditor, TopicCategoryTagEditor, DButton, ConditionalLoadingSpinner, LoadMore
 
 #### 7. `<NestedPost>` Component (`components/nested-post.gjs`)
 
@@ -646,7 +648,7 @@ plugins/discourse-nested-view/
 │   │       │   └── topic-navigation/               # "View as nested" link on flat topic view
 │   │       │       └── nested-view-link.gjs
 │   │       ├── api-initializers/
-│   │       │   └── nested-view-redirect.js         # Auto-redirect from flat→nested for default categories; blocks post-save navigation to flat view
+│   │       │   └── nested-view-redirect.js         # Rewrites /t/ URLs to /nested/ at routeTo level (primary) + routeDidChange fallback; blocks post-save nav
 │   │       ├── routes/
 │   │       │   └── nested.js                       # Route handler (PreloadStore + AJAX + tree building)
 │   │       ├── controllers/
@@ -715,7 +717,7 @@ plugins/discourse-nested-view/
 
 ### Phase 3: Notifications, Deep-Linking, Live Updates
 
-- [x] 1. API initializer (`api-initializers/nested-view-redirect.js`): intercepts `routeDidChange` on the router service, redirects `topic.fromParams`/`topic.fromParamsNear` to `/nested/` when nested is category/site default. Tracks `previousRouteName` to avoid re-redirecting when user explicitly chose flat view from nested. Also blocks post-save navigation to flat view by intercepting `DiscourseURL.routeTo` after `composer:saved` fires on the nested route (core's composer loses `skipJumpOnSave` when `topicModel` is null).
+- [x] 1. API initializer (`api-initializers/nested-view-redirect.js`): primary interception at `DiscourseURL.routeTo` rewrites `/t/slug/id` URLs to `/nested/slug/id` before they enter the router — preventing intermediate flat-view history entries on browser back. Uses `session.topicList` to look up topic category for per-category default check, and `Category.findById` for category setting. Falls back to `routeDidChange` handler (redirects `topic.fromParams`/`topic.fromParamsNear` via `router.replaceWith`) for direct URL navigation where topic isn't cached. Tracks `previousRouteName` to avoid re-redirecting from nested. Also blocks post-save navigation to flat view by intercepting `routeTo` after `composer:saved` fires on the nested route.
 - [x] 2. `<NestedContextView>` component: builds ancestor chain as a nested tree (ancestor[0] wraps ancestor[1] wraps ... target), rendering via NestedPost recursion. Each ancestor has 1 preloaded child (the next in chain); users can expand to see siblings via "load more". Scroll-to-target via `schedule("afterRender")` + `requestAnimationFrame`.
 - [x] 3. Context endpoint integration in route handler: `post_number` query param now has `refreshModel: true`. When present, route fetches from `/context/:post_number` instead of `/roots`. `_processContextResponse` builds the ancestor chain and returns `contextMode: true` model.
 - [x] 4. Scroll-to + CSS highlight animation: NestedContextView's constructor schedules `_scrollToTarget()` after render, which finds `[data-post-number]` element, adds `nested-post--highlighted` class, and calls `scrollIntoView({ behavior: "smooth", block: "center" })`.
@@ -766,7 +768,7 @@ plugins/discourse-nested-view/
 | **Plugin N+1 mitigation** | Batch precompute reactions + preload plugin associations | discourse-reactions' per-post COUNT query replaced with single batch SQL. Plugin associations (post_actions, reactions) preloaded via `ActiveRecord::Associations::Preloader`. Results stored on `post.precomputed_reactions` and short-circuited via prepend on `PostSerializer` (not `ReactionsSerializerHelpers` — load order dependent). |
 | **View toggle** | “View as nested” link via topic connector on flat view; “View as flat” link in nested view header | Each view links to the other. Nested view has its own route/template. |
 | **Default view control** | Site setting + category custom field + user preference (localStorage) | Priority: user choice > category setting > site setting > flat. |
-| **Notification navigation** | API initializer intercepts `topic.fromParamsNear`, redirects to `/nested/` with `?post_number=N` | Seamless — no flash of flat view. Only triggers when nested is the default for the category. User can always override via localStorage preference. |
+| **Notification navigation** | API initializer intercepts at `DiscourseURL.routeTo` (primary) and `routeDidChange` (fallback), rewrites `/t/` URLs to `/nested/` | Seamless — no flash of flat view, no intermediate history entry. `routeTo` intercept uses `session.topicList` + `Category.findById` for category lookup. `routeDidChange` fallback for direct URL navigation. |
 | **Live updates** | Subscribe to existing `/topic/{id}` MessageBus channel | No custom channel needed. Same data Discourse already publishes. Buffer + batch-fetch for rapid posting. |
 | **Post identity** | All views share Ember Store’s WeakValueMap identity map | Same post object in flat view, nested view, and context view. GC-friendly. No duplicated data. |
 | **Reply count caching** | Dedicated `nested_view_post_stats` table | Plugin-owned, clean uninstall, single-query batch loads, maintained via Post callbacks. |
