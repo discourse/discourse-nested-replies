@@ -481,6 +481,7 @@ module ::DiscourseNestedReplies
       {
         id: @topic.id,
         title: @topic.title,
+        fancy_title: @topic.fancy_title,
         slug: @topic.slug,
         category_id: @topic.category_id,
         tags: @topic.tags.map(&:name),
@@ -492,6 +493,7 @@ module ::DiscourseNestedReplies
         draft_sequence: current_user ? DraftSequence.current(current_user, @topic.draft_key) : 0,
         details: {
           can_create_post: guardian.can_create?(Post, @topic),
+          can_edit: guardian.can_edit_topic?(@topic),
         },
       }
     end

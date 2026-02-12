@@ -199,7 +199,8 @@ export default class NestedController extends Controller {
   }
 
   @action
-  startEditingTopic() {
+  startEditingTopic(event) {
+    event?.preventDefault();
     if (!this.topic?.details?.can_edit) {
       return;
     }

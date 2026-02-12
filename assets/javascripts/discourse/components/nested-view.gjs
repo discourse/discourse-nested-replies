@@ -10,6 +10,7 @@ import PostMenu from "discourse/components/post/menu";
 import PostMetaData from "discourse/components/post/meta-data";
 import TopicCategory from "discourse/components/topic-category";
 import TopicCategoryTagEditor from "discourse/components/topic-category-tag-editor";
+import TopicTitleEditor from "discourse/components/topic-title-editor";
 import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
 import { gt } from "discourse/truth-helpers";
@@ -27,6 +28,12 @@ export default class NestedView extends Component {
       <div class="nested-view__header">
         {{#if @editingTopic}}
           <div class="edit-topic-title">
+            <TopicTitleEditor
+              @bufferedTitle={{@buffered.title}}
+              @model={{@topic}}
+              @buffered={{@buffered}}
+            />
+
             <TopicCategoryTagEditor
               @buffered={{@buffered}}
               @model={{@topic}}
@@ -39,23 +46,23 @@ export default class NestedView extends Component {
               @topicTagsChanged={{@topicTagsChanged}}
             />
           </div>
+        {{else}}
+          <h1 class="nested-view__title">
+            <a
+              href={{@topic.url}}
+              {{on "click" @startEditingTopic}}
+              class="fancy-title"
+            >
+              {{htmlSafe @topic.fancyTitle}}
+              {{#if @topic.details.can_edit}}
+                <span class="edit-topic__wrapper">
+                  {{icon "pencil" class="edit-topic"}}
+                </span>
+              {{/if}}
+            </a>
+          </h1>
+          <TopicCategory @topic={{@topic}} class="topic-category" />
         {{/if}}
-
-        <h1 class="nested-view__title">
-          <a
-            href={{@topic.url}}
-            {{on "click" @startEditingTopic}}
-            class="fancy-title"
-          >
-            {{htmlSafe @topic.fancyTitle}}
-            {{#if @topic.details.can_edit}}
-              <span class="edit-topic__wrapper">
-                {{icon "pencil" class="edit-topic"}}
-              </span>
-            {{/if}}
-          </a>
-        </h1>
-        <TopicCategory @topic={{@topic}} class="topic-category" />
       </div>
 
       {{#if @opPost}}

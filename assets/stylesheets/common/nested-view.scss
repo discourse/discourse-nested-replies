@@ -18,7 +18,7 @@
   &__controls {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 1em;
     margin-bottom: 1em;
   }
@@ -26,6 +26,7 @@
   &__flat-link {
     font-size: var(--font-down-1);
     white-space: nowrap;
+    margin-left: auto;
   }
 
   &__op {
@@ -39,6 +40,18 @@
   &__op-row {
     display: flex;
     gap: 0.75em;
+
+    .topic-avatar {
+      border-top: none;
+      float: none;
+      width: auto;
+      padding-top: 0;
+      height: auto;
+    }
+
+    .topic-meta-data {
+      padding: 0;
+    }
   }
 
   &__op-body {
@@ -189,6 +202,14 @@
 
     .topic-avatar {
       border-top: none;
+      float: none;
+      width: auto;
+      padding-top: 0;
+      height: auto;
+    }
+
+    .topic-meta-data {
+      padding: 0;
     }
   }
 
