@@ -23,7 +23,7 @@ export default class NestedContextView extends Component {
   }
 
   get flatViewUrl() {
-    return getURL(`/t/${this.args.topic.slug}/${this.args.topic.id}`);
+    return getURL(`/t/${this.args.topic.slug}/${this.args.topic.id}?flat=1`);
   }
 
   _scrollToTarget() {

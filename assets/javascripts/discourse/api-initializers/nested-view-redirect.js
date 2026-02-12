@@ -2,7 +2,7 @@ import { apiInitializer } from "discourse/lib/api";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 
-const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?$/;
+const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?(?:\?(.*))?$/;
 
 function buildNestedPath(slug, topicId, postNumber) {
   let path = `/nested/${slug}/${topicId}`;
@@ -54,7 +54,15 @@ export default apiInitializer((api) => {
 
     const match = TOPIC_URL_RE.exec(path);
     if (match) {
-      const [, slug, topicId, postNumber] = match;
+      const [, slug, topicId, postNumber, queryString] = match;
+
+      if (queryString) {
+        const params = new URLSearchParams(queryString);
+        if (params.has("flat")) {
+          return originalRouteTo.call(DiscourseURL, path, opts);
+        }
+      }
+
       const id = parseInt(topicId, 10);
 
       // For site-wide default we can redirect immediately.
@@ -88,6 +96,12 @@ export default apiInitializer((api) => {
       routeName === "topic.fromParamsNear"
     ) {
       if (previousRouteName?.startsWith("nested")) {
+        previousRouteName = routeName;
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has("flat")) {
         previousRouteName = routeName;
         return;
       }
