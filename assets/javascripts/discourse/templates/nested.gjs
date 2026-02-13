@@ -28,6 +28,7 @@ export default <template>
       @topicCategoryChanged={{@controller.topicCategoryChanged}}
       @topicTagsChanged={{@controller.topicTagsChanged}}
       @minimumRequiredTags={{@controller.minimumRequiredTags}}
+      @postScreenTracker={{@controller.postScreenTracker}}
     />
   {{else}}
     <NestedView
@@ -57,6 +58,7 @@ export default <template>
       @topicCategoryChanged={{@controller.topicCategoryChanged}}
       @topicTagsChanged={{@controller.topicTagsChanged}}
       @minimumRequiredTags={{@controller.minimumRequiredTags}}
+      @postScreenTracker={{@controller.postScreenTracker}}
     />
   {{/if}}
 </template>

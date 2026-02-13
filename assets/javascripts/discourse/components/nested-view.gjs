@@ -1,6 +1,7 @@
 import Component from "@glimmer/component";
 import { on } from "@ember/modifier";
 import { htmlSafe } from "@ember/template";
+import { modifier } from "ember-modifier";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
 import DButton from "discourse/components/d-button";
 import LoadMore from "discourse/components/load-more";
@@ -19,6 +20,11 @@ import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedView extends Component {
+  trackOpPost = modifier((element) => {
+    this.args.postScreenTracker?.observe(element, this.args.opPost);
+    return () => this.args.postScreenTracker?.unobserve(element);
+  });
+
   get flatViewUrl() {
     return getURL(`/t/${this.args.topic.slug}/${this.args.topic.id}?flat=1`);
   }
@@ -67,7 +73,7 @@ export default class NestedView extends Component {
 
       {{#if @opPost}}
         <div class="nested-view__op">
-          <article class="nested-view__op-article">
+          <article class="nested-view__op-article" {{this.trackOpPost}}>
             <div class="nested-view__op-row">
               <PostAvatar @post={{@opPost}} />
               <div class="nested-view__op-body">
@@ -123,6 +129,7 @@ export default class NestedView extends Component {
             @deletePost={{@deletePost}}
             @recoverPost={{@recoverPost}}
             @showFlags={{@showFlags}}
+            @postScreenTracker={{@postScreenTracker}}
           />
         {{else}}
           <div class="nested-view__empty">

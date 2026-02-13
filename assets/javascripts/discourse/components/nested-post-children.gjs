@@ -186,6 +186,7 @@ export default class NestedPostChildren extends Component {
             @highlightParentLine={{@highlightParentLine}}
             @unhighlightParentLine={{@unhighlightParentLine}}
             @parentLineHighlighted={{@parentLineHighlighted}}
+            @postScreenTracker={{@postScreenTracker}}
           />
         {{/each}}
 

@@ -1,5 +1,6 @@
 import Component from "@glimmer/component";
 import DButton from "discourse/components/d-button";
+import concatClass from "discourse/helpers/concat-class";
 import { i18n } from "discourse-i18n";
 
 export default class NestedRepliesToggleButton extends Component {
@@ -38,7 +39,10 @@ export default class NestedRepliesToggleButton extends Component {
 
   <template>
     <DButton
-      class="post-action-menu__nested-replies-toggle btn-icon-text"
+      class={{concatClass
+        "post-action-menu__nested-replies-toggle btn-icon-text"
+        (if @state.repliesShown "is-collapse")
+      }}
       ...attributes
       @action={{@buttonActions.toggleReplies}}
       @icon={{if @state.repliesShown "chevron-up" "chevron-down"}}

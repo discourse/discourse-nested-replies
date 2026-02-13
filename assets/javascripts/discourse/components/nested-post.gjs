@@ -4,6 +4,7 @@ import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
+import { modifier } from "ember-modifier";
 import ShareTopicModal from "discourse/components/modal/share-topic";
 import PostAvatar from "discourse/components/post/avatar";
 import PostCookedHtml from "discourse/components/post/cooked-html";
@@ -28,6 +29,11 @@ export default class NestedPost extends Component {
 
   @tracked expanded = (this.args.children?.length ?? 0) > 0;
   @tracked lineHighlighted = false;
+
+  trackPost = modifier((element) => {
+    this.args.postScreenTracker?.observe(element, this.args.post);
+    return () => this.args.postScreenTracker?.unobserve(element);
+  });
 
   constructor() {
     super(...arguments);
@@ -225,6 +231,7 @@ export default class NestedPost extends Component {
         <article
           class="nested-post__article"
           data-post-number={{@post.post_number}}
+          {{this.trackPost}}
         >
           <div class="nested-post__header">
             <PostMetaData @post={{@post}} @editPost={{@editPost}} />
@@ -281,6 +288,7 @@ export default class NestedPost extends Component {
             @highlightParentLine={{this.highlightLine}}
             @unhighlightParentLine={{this.unhighlightLine}}
             @parentLineHighlighted={{this.lineHighlighted}}
+            @postScreenTracker={{@postScreenTracker}}
           />
         {{/if}}
       </div>

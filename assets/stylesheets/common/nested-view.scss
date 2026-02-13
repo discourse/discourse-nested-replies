@@ -325,6 +325,12 @@
       margin-left: auto;
       order: 1;
     }
+
+    // Read state was all whacky, this makes it nice.
+    .read-state {
+      position: relative;
+      margin-left: 3px;
+    }
   }
 
   &__op-badge {
@@ -354,10 +360,19 @@
 
     .post-action-menu__nested-replies-toggle {
       color: var(--tertiary);
+      font-size: var(--font-down-1);
 
       .d-icon {
         color: var(--tertiary);
         font-size: var(--font-down-2);
+      }
+
+      &.is-collapse {
+        color: var(--d-post-control-text-color);
+
+        .d-icon {
+          color: var(--d-post-control-text-color);
+        }
       }
     }
   }

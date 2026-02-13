@@ -3,6 +3,7 @@ import { array } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { schedule } from "@ember/runloop";
 import { htmlSafe } from "@ember/template";
+import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import PostAvatar from "discourse/components/post/avatar";
 import PostCookedHtml from "discourse/components/post/cooked-html";
@@ -17,6 +18,11 @@ import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedContextView extends Component {
+  trackOpPost = modifier((element) => {
+    this.args.postScreenTracker?.observe(element, this.args.opPost);
+    return () => this.args.postScreenTracker?.unobserve(element);
+  });
+
   constructor() {
     super(...arguments);
     schedule("afterRender", this, this._scrollToTarget);
@@ -109,7 +115,7 @@ export default class NestedContextView extends Component {
 
       {{#if @opPost}}
         <div class="nested-view__op">
-          <article class="nested-view__op-article">
+          <article class="nested-view__op-article" {{this.trackOpPost}}>
             <div class="nested-view__op-row">
               <PostAvatar @post={{@opPost}} />
               <div class="nested-view__op-body">
@@ -146,6 +152,7 @@ export default class NestedContextView extends Component {
               @deletePost={{@deletePost}}
               @recoverPost={{@recoverPost}}
               @showFlags={{@showFlags}}
+              @postScreenTracker={{@postScreenTracker}}
             />
           {{/each}}
         </div>

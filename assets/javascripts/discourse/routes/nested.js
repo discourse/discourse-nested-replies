@@ -1,8 +1,11 @@
 import Route from "@ember/routing/route";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
+import PostScreenTracker from "discourse/lib/post-screen-tracker";
 
 export default class NestedRoute extends Route {
+  @service header;
+  @service screenTrack;
   @service store;
 
   queryParams = {
@@ -42,11 +45,19 @@ export default class NestedRoute extends Route {
   setupController(controller, model) {
     controller.setProperties(model);
     controller.subscribe();
+
+    controller.postScreenTracker = new PostScreenTracker(this.screenTrack, {
+      headerOffset: this.header.headerOffset,
+    });
+    this.screenTrack.start(model.topic.id, controller);
   }
 
   deactivate() {
     super.deactivate(...arguments);
     this.controller.unsubscribe();
+    this.screenTrack.stop();
+    this.controller.postScreenTracker?.destroy();
+    this.controller.postScreenTracker = null;
   }
 
   _processResponse(data, params) {

@@ -40,6 +40,7 @@ export default class NestedController extends Controller {
   @tracked contextNoAncestors = false;
   @tracked newRootPostIds = [];
   @tracked editingTopic = false;
+  @tracked postScreenTracker = null;
   queryParams = ["sort", "post_number", "context"];
 
   @cached
@@ -324,6 +325,41 @@ export default class NestedController extends Controller {
 
     if (newNodes.length > 0) {
       this.rootNodes = [...newNodes, ...this.rootNodes];
+    }
+  }
+
+  readPosts(topicId, postNumbers) {
+    if (this.topic?.id !== topicId) {
+      return;
+    }
+
+    const postNumberSet = new Set(postNumbers);
+
+    const markRead = (post) => {
+      if (!post.read && postNumberSet.has(post.post_number)) {
+        post.set("read", true);
+      }
+    };
+
+    if (this.opPost) {
+      markRead(this.opPost);
+    }
+
+    const walkNodes = (nodes) => {
+      nodes?.forEach((node) => {
+        markRead(node.post);
+        walkNodes(node.children);
+      });
+    };
+
+    walkNodes(this.rootNodes);
+
+    if (this.contextChain) {
+      const walkChain = (node) => {
+        markRead(node.post);
+        node.children?.forEach(walkChain);
+      };
+      walkChain(this.contextChain);
     }
   }
 
