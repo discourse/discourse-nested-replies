@@ -1,5 +1,6 @@
 import Component from "@glimmer/component";
 import { on } from "@ember/modifier";
+import { action } from "@ember/object";
 import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
@@ -87,6 +88,7 @@ export default class NestedView extends Component {
                     @canCreatePost={{true}}
                     @replyToPost={{@replyToPost}}
                     @editPost={{@editPost}}
+                    @toggleLike={{this.toggleOpLike}}
                     @showLogin={{this.noop}}
                   />
                 </section>
@@ -147,6 +149,15 @@ export default class NestedView extends Component {
       />
     </div>
   </template>
+
+  @action
+  async toggleOpLike() {
+    const post = this.args.opPost;
+    const likeAction = post.likeAction;
+    if (likeAction?.canToggle) {
+      await likeAction.togglePromise(post);
+    }
+  }
 
   noop() {}
 }
