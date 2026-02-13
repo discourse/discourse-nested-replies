@@ -478,24 +478,9 @@ module ::DiscourseNestedReplies
     end
 
     def serialize_topic
-      {
-        id: @topic.id,
-        title: @topic.title,
-        fancy_title: @topic.fancy_title,
-        slug: @topic.slug,
-        category_id: @topic.category_id,
-        tags: @topic.tags.map(&:name),
-        posts_count: @topic.posts_count,
-        user_id: @topic.user_id,
-        created_at: @topic.created_at,
-        archetype: @topic.archetype,
-        draft_key: @topic.draft_key,
-        draft_sequence: current_user ? DraftSequence.current(current_user, @topic.draft_key) : 0,
-        details: {
-          can_create_post: guardian.can_create?(Post, @topic),
-          can_edit: guardian.can_edit_topic?(@topic),
-        },
-      }
+      serializer = TopicViewSerializer.new(@topic_view, scope: guardian, root: false)
+      json = serializer.as_json
+      json.except(:post_stream, :timeline_lookup, :user_badges)
     end
 
     def serialize_post(post, reply_counts, descendant_counts = {})

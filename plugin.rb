@@ -19,11 +19,6 @@ end
 require_relative "lib/discourse_nested_replies/engine"
 
 after_initialize do
-  # --- Guardian: fix anonymous user crash in edit group checks ---
-  # Core's is_in_edit_post_groups? and is_in_edit_topic_groups? call
-  # user.in_any_groups? without a nil guard, crashing for anon users.
-  Guardian.prepend DiscourseNestedReplies::GuardianExtension
-
   # --- PostSerializer: pass direct_reply_counts via INSTANCE_VARS ---
   # This lets callers pass a preloaded hash as a serializer option.
   # The constructor auto-sets it as @direct_reply_counts on the instance.

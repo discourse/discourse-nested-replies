@@ -4,8 +4,12 @@ import Category from "discourse/models/category";
 
 const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?(?:\?(.*))?$/;
 
-function buildNestedPath(slug, topicId) {
-  return `/nested/${slug}/${topicId}`;
+function buildNestedPath(slug, topicId, postNumber) {
+  let path = `/nested/${slug}/${topicId}`;
+  if (postNumber) {
+    path += `?post_number=${postNumber}`;
+  }
+  return path;
 }
 
 function isNestedDefault(siteSettings, categoryId) {
@@ -41,6 +45,18 @@ export default apiInitializer((api) => {
     }
   });
 
+  api.registerValueTransformer(
+    "topic-url-for-post-number",
+    ({ value, context }) => {
+      const { topic } = context;
+      if (isNestedDefault(siteSettings, topic.category_id)) {
+        const slug = topic.slug || "topic";
+        return `/nested/${slug}/${topic.id}`;
+      }
+      return value;
+    }
+  );
+
   const originalRouteTo = DiscourseURL.routeTo;
   DiscourseURL.routeTo = function (path, opts) {
     if (composerSavedFromNested && /^\/t\//.test(path)) {
@@ -50,7 +66,7 @@ export default apiInitializer((api) => {
 
     const match = TOPIC_URL_RE.exec(path);
     if (match) {
-      const [, slug, topicId, , queryString] = match;
+      const [, slug, topicId, postNumber, queryString] = match;
 
       if (queryString) {
         const params = new URLSearchParams(queryString);
@@ -71,9 +87,8 @@ export default apiInitializer((api) => {
       }
 
       if (isNestedDefault(siteSettings, categoryId)) {
-        // Drop the post_number — it's a "resume reading" position from
-        // the topic list which is meaningless in a non-chronological tree view.
-        const nestedPath = buildNestedPath(slug, topicId);
+        // Convert post_number from path segment to query param for deep-linking.
+        const nestedPath = buildNestedPath(slug, topicId, postNumber);
         return originalRouteTo.call(DiscourseURL, nestedPath, opts);
       }
     }
@@ -122,6 +137,13 @@ export default apiInitializer((api) => {
     }
 
     transition.abort();
-    router.transitionTo("nested", slug, topicId);
+
+    const nearPost = transition.to?.params?.nearPost;
+    const queryParams = {};
+    if (nearPost) {
+      queryParams.post_number = nearPost;
+    }
+
+    router.transitionTo("nested", slug, topicId, { queryParams });
   });
 });
