@@ -129,7 +129,7 @@
   // Grid splits article (row 1) from children (row 2) so the gutter's
   // depth-line naturally stops at the article bottom.
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: var(--nested-avatar-size) 1fr;
   column-gap: 0.5em;
   position: relative;
 
@@ -162,7 +162,7 @@
       left: calc(-0.5em - var(--nested-avatar-size) / 2);
       top: calc(0.5em + var(--nested-avatar-size) / 2 + 1px - 10px);
       bottom: 0;
-      width: 1.5px;
+      width: 2px;
       background: var(--primary-low);
       transition: background-color 0.15s ease;
     }
@@ -225,7 +225,9 @@
     }
   }
 
-  // Depth line sits below the avatar — only spans article height
+  // Depth line sits below the avatar. Extends 1em below the gutter so it
+  // overlaps the first child's L-connector, masking any subpixel rounding
+  // offset between grid column 1 (gutter) and column 2 (children).
   &__depth-line {
     flex: 1;
     width: 100%;
@@ -239,11 +241,10 @@
     &::after {
       content: "";
       position: absolute;
-      left: 50%;
+      left: calc(var(--nested-avatar-size) / 2);
       top: 6px;
-      bottom: 0;
+      bottom: -1em;
       width: 2px;
-      transform: translateX(-50%);
       border-radius: 1px;
       background: var(--primary-low);
       transition: background-color 0.15s ease;
@@ -263,7 +264,7 @@
     // that bends toward the "N replies" expand button
     &--collapsed {
       &::after {
-        left: calc(50% - 1px);
+        left: calc(var(--nested-avatar-size) / 2);
         bottom: 12px;
         width: calc(var(--nested-avatar-size) / 2);
         transform: none;
@@ -457,10 +458,9 @@
     }
 
     &__gutter {
-
       // Avatars were touching the swooping horizontal line and not aligned over the vertical lines
       .post-avatar {
-        left: 2px
+        left: 2px;
       }
     }
 
