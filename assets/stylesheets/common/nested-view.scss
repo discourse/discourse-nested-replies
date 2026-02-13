@@ -124,17 +124,23 @@
 .nested-post {
   // Avatar size for the "small" PostAvatar used in nested posts.
   // Used to calculate horizontal connector positions.
-  --nested-avatar-size: 25px;
+  --nested-avatar-size: 24px;
+  --nested-column-gap: 8px;
+  --nested-connector-offset: 8px;
+  --nested-vertical-gap: 0.5em;
+  --nested-hook-width: calc(var(--nested-avatar-size) / 2);
+  --nested-line-offset: calc(var(--nested-connector-offset) + var(--nested-avatar-size) / 2);
+  --nested-load-more-left-adjust: 2px;
 
   // Grid splits article (row 1) from children (row 2) so the gutter's
   // depth-line naturally stops at the article bottom.
   display: grid;
   grid-template-columns: var(--nested-avatar-size) 1fr;
-  column-gap: 0.5em;
+  column-gap: var(--nested-column-gap);
   position: relative;
 
   &:not(.--depth-0) {
-    padding-top: 0.5em;
+    padding-top: var(--nested-vertical-gap);
 
     // L-shaped connector from parent's depth-line to this post's avatar.
     // Extends 4px above the element to bridge the gap between the parent's
@@ -143,9 +149,9 @@
       content: "";
       position: absolute;
       top: -4px;
-      left: calc(-0.5em - var(--nested-avatar-size) / 2);
-      width: calc(var(--nested-avatar-size) / 2);
-      height: calc(0.5em + var(--nested-avatar-size) / 2 + 1px + 4px);
+      left: calc(-1 * var(--nested-line-offset));
+      width: var(--nested-hook-width);
+      height: calc(var(--nested-vertical-gap) + var(--nested-avatar-size) / 2 + 5px);
       border-left: 2px solid var(--primary-low);
       border-bottom: 2px solid var(--primary-low);
       border-radius: 0 0 0 12px;
@@ -159,8 +165,8 @@
     &:not(:last-child)::after {
       content: "";
       position: absolute;
-      left: calc(-0.5em - var(--nested-avatar-size) / 2);
-      top: calc(0.5em + var(--nested-avatar-size) / 2 + 1px - 10px);
+      left: calc(-1 * var(--nested-line-offset));
+      top: calc(var(--nested-vertical-gap) + var(--nested-avatar-size) / 2 + 1px - 10px);
       bottom: 0;
       width: 2px;
       background: var(--primary-low);
@@ -183,7 +189,7 @@
   // Provides click-to-collapse and hover-to-highlight for the parent line.
   &__parent-line-btn {
     position: absolute;
-    left: calc(-0.5em - var(--nested-avatar-size) / 2 - 10px);
+    left: calc(-1 * var(--nested-line-offset) - 10px);
     top: 0;
     bottom: 0;
     width: 22px;
@@ -265,7 +271,7 @@
     &--collapsed {
       &::after {
         left: calc(var(--nested-avatar-size) / 2);
-        bottom: 12px;
+        bottom: 20px;
         width: calc(var(--nested-avatar-size) / 2);
         transform: none;
         background: none;
@@ -310,6 +316,15 @@
     .reply-to-tab {
       display: none;
     }
+
+    .topic-meta-data {
+      display: contents;
+    }
+
+    .post-infos {
+      margin-left: auto;
+      order: 1;
+    }
   }
 
   &__op-badge {
@@ -331,8 +346,19 @@
   &__menu {
     margin: 0.25em 0;
 
-    .post-action-menu__show-replies {
-      display: none;
+    nav.post-controls {
+      .post-action-menu__show-replies {
+        display: none;
+      }
+    }
+
+    .post-action-menu__nested-replies-toggle {
+      color: var(--tertiary);
+
+      .d-icon {
+        color: var(--tertiary);
+        font-size: var(--font-down-2);
+      }
     }
   }
 
@@ -370,10 +396,10 @@
     &::before {
       content: "";
       position: absolute;
-      left: calc((-0.5em - var(--nested-avatar-size) / 2) - 2px);
+      left: calc(-1 * var(--nested-line-offset) - var(--nested-load-more-left-adjust));
       top: -1em;
       height: calc(50% + 1em);
-      width: calc(0.5em + var(--nested-avatar-size) / 2);
+      width: var(--nested-line-offset);
       border-left: 2px solid var(--primary-low);
       border-bottom: 2px solid var(--primary-low);
       border-radius: 0 0 0 12px;
@@ -446,18 +472,13 @@
   }
 
   .nested-post {
-    column-gap: 2px;
-
-    &:not(.--depth-0)::before {
-      left: calc(-0.375em - var(--nested-avatar-size) / 2);
-      width: calc(0.375em + var(--nested-avatar-size) / 2);
-    }
-
-    &:not(.--depth-0, :last-child)::after {
-      left: calc(-0.375em - var(--nested-avatar-size) / 2);
-    }
+    --nested-column-gap: 2px;
+    --nested-connector-offset: 6px;
+    --nested-hook-width: calc(var(--nested-connector-offset) + var(--nested-avatar-size) / 2);
+    --nested-load-more-left-adjust: 0px;
 
     &__gutter {
+
       // Avatars were touching the swooping horizontal line and not aligned over the vertical lines
       .post-avatar {
         left: 2px;
@@ -475,15 +496,6 @@
     &__content {
       overflow-x: auto;
     }
-
-    &__parent-line-btn {
-      left: calc(-0.375em - var(--nested-avatar-size) / 2 - 10px);
-    }
-  }
-
-  .nested-post-children__load-more::before {
-    left: calc(-0.5em - var(--nested-avatar-size) / 2);
-    width: calc(0.375em + var(--nested-avatar-size) / 2);
   }
 
   .nested-sort-selector {

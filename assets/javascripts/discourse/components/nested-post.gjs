@@ -4,7 +4,6 @@ import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
-import DButton from "discourse/components/d-button";
 import ShareTopicModal from "discourse/components/modal/share-topic";
 import PostAvatar from "discourse/components/post/avatar";
 import PostCookedHtml from "discourse/components/post/cooked-html";
@@ -250,28 +249,18 @@ export default class NestedPost extends Component {
               @share={{this.share}}
               @showFlags={{fn @showFlags @post}}
               @toggleLike={{this.toggleLike}}
-              @toggleReplies={{this.noop}}
+              @toggleReplies={{this.toggleExpanded}}
+              @repliesShown={{this.expanded}}
               @showLogin={{this.noop}}
             />
           </section>
-          <div class="nested-post__controls">
-            {{#if this.showContinueThread}}
+          {{#if this.showContinueThread}}
+            <div class="nested-post__controls">
               <a href={{this.contextUrl}} class="nested-post__continue-link">
                 {{i18n "discourse_nested_replies.continue_thread"}}
               </a>
-            {{else if (and this.hasReplies (not this.atMaxDepth))}}
-              <DButton
-                class="btn-flat nested-post__expand-btn"
-                @action={{this.toggleExpanded}}
-                @translatedLabel={{if
-                  this.expanded
-                  (i18n "discourse_nested_replies.collapse")
-                  this.expandLabel
-                }}
-                @icon={{if this.expanded "chevron-up" "chevron-down"}}
-              />
-            {{/if}}
-          </div>
+            </div>
+          {{/if}}
         </article>
 
         {{#if (and this.expanded (not this.atMaxDepth))}}
