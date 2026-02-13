@@ -122,21 +122,83 @@
 
 // ── Nested post (single comment in tree) ───────────────────────────
 .nested-post {
-  // Height from post top to avatar center, used for connector placement.
-  // article padding (0.5em) + avatar center (24px)
-  --connector-top: calc(0.5em + 24px);
-  position: relative;
-  padding-left: 20px;
+  // Avatar size for the "small" PostAvatar used in nested posts.
+  // Used to calculate horizontal connector positions.
+  --nested-avatar-size: 25px;
 
-  // Nested posts use padding (not margin) so depth lines are continuous
+  // Grid splits article (row 1) from children (row 2) so the gutter's
+  // depth-line naturally stops at the article bottom.
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5em;
+  position: relative;
+
   &:not(.--depth-0) {
-    margin-top: 0;
-    padding-top: 0.25em;
+    padding-top: 0.5em;
+
+    // L-shaped connector from parent's depth-line to this post's avatar.
+    // Extends 4px above the element to bridge the gap between the parent's
+    // depth-line (grid row 1) and this child (grid row 2).
+    &::before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: calc(-0.5em - var(--nested-avatar-size) / 2);
+      width: calc(var(--nested-avatar-size) / 2);
+      height: calc(0.5em + var(--nested-avatar-size) / 2 + 1px + 4px);
+      border-left: 2px solid var(--primary-low);
+      border-bottom: 2px solid var(--primary-low);
+      border-radius: 0 0 0 12px;
+      transition: border-color 0.15s ease;
+    }
+
+    // Vertical continuation line connecting to the next sibling.
+    // Only drawn for non-last children; last child stops at its connector.
+    // Overlaps the L-connector curve by 4px to prevent thin-line rendering
+    // caused by border-radius anti-aliasing.
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: calc(-0.5em - var(--nested-avatar-size) / 2);
+      top: calc(0.5em + var(--nested-avatar-size) / 2 + 1px - 10px);
+      bottom: 0;
+      width: 1.5px;
+      background: var(--primary-low);
+      transition: background-color 0.15s ease;
+    }
+  }
+
+  // When the parent's depth-line is hovered, highlight child connectors
+  &:not(.--depth-0).--parent-line-highlighted {
+    &::before {
+      border-color: var(--tertiary);
+    }
+
+    &:not(:last-child)::after {
+      background: var(--tertiary);
+    }
+  }
+
+  // Transparent overlay covering the parent's line area through this child.
+  // Provides click-to-collapse and hover-to-highlight for the parent line.
+  &__parent-line-btn {
+    position: absolute;
+    left: calc(-0.5em - var(--nested-avatar-size) / 2 - 10px);
+    top: 0;
+    bottom: 0;
+    width: 22px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover,
+    &:focus-visible {
+      outline: none;
+    }
   }
 
   &.--depth-0 {
-    padding-left: 0;
-    border-bottom: 1px solid var(--primary-low);
     padding-bottom: 0.75em;
     margin-top: 0.5em;
 
@@ -145,64 +207,14 @@
     }
   }
 
-  // Depth line (clickable to collapse subtree)
-  &__depth-line {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 20px;
-    padding: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    z-index: 1;
-
-    // Vertical line
-    &::after {
-      content: "";
-      position: absolute;
-      left: 8px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      border-radius: 1px;
-      background: var(--primary-low);
-      transition: background-color 0.15s ease;
-    }
-
-    // Horizontal connector branching to post content
-    &::before {
-      content: "";
-      position: absolute;
-      left: 8px;
-      top: var(--connector-top);
-      width: 10px;
-      height: 2px;
-      border-radius: 1px;
-      background: var(--primary-low);
-      transition: background-color 0.15s ease;
-    }
-
-    &:hover,
-    &:focus-visible {
-      outline: none;
-
-      &::after,
-      &::before {
-        background: var(--tertiary);
-      }
-    }
-  }
-
-  // Last sibling: vertical line stops at the connector (no orphan tail)
-  &:last-child > .nested-post__depth-line::after {
-    bottom: auto;
-    height: var(--connector-top);
-  }
-
-  &__article {
-    padding: 0.5em 0;
+  // Left column: avatar on top, clickable depth line below.
+  // Grid row 1 only — does not extend into the children row.
+  &__gutter {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
     .topic-avatar {
       border-top: none;
@@ -211,26 +223,92 @@
       padding-top: 0;
       height: auto;
     }
+  }
+
+  // Depth line sits below the avatar — only spans article height
+  &__depth-line {
+    flex: 1;
+    width: 100%;
+    position: relative;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    min-height: 8px;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 6px;
+      bottom: 0;
+      width: 2px;
+      transform: translateX(-50%);
+      border-radius: 1px;
+      background: var(--primary-low);
+      transition: background-color 0.15s ease;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &--highlighted {
+      outline: none;
+
+      &::after {
+        background: var(--tertiary);
+      }
+    }
+
+    // When children are collapsed, turn the vertical line into an L-shape
+    // that bends toward the "N replies" expand button
+    &--collapsed {
+      &::after {
+        left: calc(50% - 1px);
+        bottom: 12px;
+        width: calc(var(--nested-avatar-size) / 2);
+        transform: none;
+        background: none;
+        border-left: 2px solid var(--primary-low);
+        border-bottom: 2px solid var(--primary-low);
+        border-radius: 0 0 0 12px;
+        transition: border-color 0.15s ease;
+      }
+
+      &:hover,
+      &:focus-visible {
+        &::after {
+          background: none;
+          border-color: var(--tertiary);
+        }
+      }
+    }
+  }
+
+  // display: contents dissolves __main from the grid so its children
+  // (article + nested-post-children) become grid items directly.
+  &__main {
+    display: contents;
+  }
+
+  &__article {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
 
     .topic-meta-data {
       padding: 0;
     }
   }
 
-  &__row {
-    display: flex;
-    gap: 0.5em;
-  }
-
-  &__body {
-    flex: 1;
-    min-width: 0;
-  }
-
   &__header {
     display: flex;
     align-items: center;
     gap: 0.5em;
+
+    // Hide the reply-to line, as the lines between posts already visually indicate the reply structure
+    .reply-to-tab {
+      display: none;
+    }
   }
 
   &__op-badge {
@@ -274,21 +352,31 @@
     color: var(--tertiary);
     font-weight: bold;
   }
-
-  // Depth-based indentation
-  @for $i from 1 through 10 {
-    &.--depth-#{$i} {
-      margin-left: 0.5em;
-    }
-  }
 }
 
 // ── Children container ─────────────────────────────────────────────
 .nested-post-children {
+  grid-column: 2;
+  grid-row: 2;
+
   &__load-more {
-    margin: 0.5em 0 0.5em 20px;
+    margin: 0.5em 0;
     color: var(--tertiary);
     font-size: var(--font-down-1);
+    position: relative;
+
+    // L-shaped hook connecting the sibling continuation line to this button
+    &::before {
+      content: "";
+      position: absolute;
+      left: calc((-0.5em - var(--nested-avatar-size) / 2) - 2px);
+      top: -1em;
+      height: calc(50% + 1em);
+      width: calc(0.5em + var(--nested-avatar-size) / 2);
+      border-left: 2px solid var(--primary-low);
+      border-bottom: 2px solid var(--primary-low);
+      border-radius: 0 0 0 12px;
+    }
   }
 }
 
@@ -357,38 +445,45 @@
   }
 
   .nested-post {
-    padding-left: 14px;
+    column-gap: 2px;
 
-    &.--depth-0 {
-      padding-left: 0;
+    &:not(.--depth-0)::before {
+      left: calc(-0.375em - var(--nested-avatar-size) / 2);
+      width: calc(0.375em + var(--nested-avatar-size) / 2);
     }
 
-    &__depth-line {
-      width: 14px;
+    &:not(.--depth-0, :last-child)::after {
+      left: calc(-0.375em - var(--nested-avatar-size) / 2);
+    }
 
-      &::after {
-        left: 5px;
-      }
+    &__gutter {
 
-      &::before {
-        left: 5px;
-        width: 7px;
+      // Avatars were touching the swooping horizontal line and not aligned over the vertical lines
+      .post-avatar {
+        left: 2px
       }
     }
 
     &__header {
       flex-wrap: wrap;
+
+      .topic-meta-data {
+        margin-left: 0;
+      }
     }
 
     &__content {
       overflow-x: auto;
     }
 
-    @for $i from 1 through 10 {
-      &.--depth-#{$i} {
-        margin-left: 0.125em;
-      }
+    &__parent-line-btn {
+      left: calc(-0.375em - var(--nested-avatar-size) / 2 - 10px);
     }
+  }
+
+  .nested-post-children__load-more::before {
+    left: calc(-0.5em - var(--nested-avatar-size) / 2);
+    width: calc(0.375em + var(--nested-avatar-size) / 2);
   }
 
   .nested-sort-selector {

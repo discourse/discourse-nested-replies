@@ -27,6 +27,7 @@ en:
         one: "%{count} reply"
         other: "%{count} replies"
       collapse: "Collapse"
+      collapse_parent: "Collapse parent thread"
       no_replies: "No replies yet."
       op_badge: "OP"
       context:

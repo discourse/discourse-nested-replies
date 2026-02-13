@@ -182,6 +182,10 @@ export default class NestedPostChildren extends Component {
             @deletePost={{@deletePost}}
             @recoverPost={{@recoverPost}}
             @showFlags={{@showFlags}}
+            @collapseParent={{@collapseParent}}
+            @highlightParentLine={{@highlightParentLine}}
+            @unhighlightParentLine={{@unhighlightParentLine}}
+            @parentLineHighlighted={{@parentLineHighlighted}}
           />
         {{/each}}
 
