@@ -279,19 +279,8 @@ module ::DiscourseNestedReplies
 
       # Wrap in PreloadablePostsArray so on_preload hooks that call
       # .includes() or .pluck() work transparently with our loaded posts.
-      @topic_view.instance_variable_set(:@posts, PreloadablePostsArray.new(posts))
-
-      # Clear any caches from the initial TopicView construction
-      %i[
-        @all_post_actions
-        @reviewable_counts
-        @post_custom_fields
-        @user_custom_fields
-        @category_group_moderator_user_ids
-        @mentioned_users
-      ].each do |ivar|
-        @topic_view.remove_instance_variable(ivar) if @topic_view.instance_variable_defined?(ivar)
-      end
+      # reset_posts! replaces @posts and clears all dependent memoized state.
+      @topic_view.reset_posts!(PreloadablePostsArray.new(posts))
 
       # Load custom fields
       allowed_post_fields = TopicView.allowed_post_custom_fields(current_user, @topic)
@@ -485,8 +474,7 @@ module ::DiscourseNestedReplies
 
     def serialize_post(post, reply_counts, descendant_counts = {})
       post.topic = @topic
-      serializer =
-        PostSerializer.new(post, scope: guardian, root: false, direct_reply_counts: reply_counts)
+      serializer = PostSerializer.new(post, scope: guardian, root: false)
       serializer.topic_view = @topic_view
       json = serializer.as_json
       json[:direct_reply_count] = reply_counts[post.post_number] || 0

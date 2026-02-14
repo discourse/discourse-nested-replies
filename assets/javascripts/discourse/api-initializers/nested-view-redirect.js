@@ -1,5 +1,4 @@
 import { apiInitializer } from "discourse/lib/api";
-import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 
 const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?(?:\?(.*))?$/;
@@ -34,8 +33,10 @@ export default apiInitializer((api) => {
   }
 
   const router = api.container.lookup("service:router");
-  const session = api.container.lookup("service:session");
   const appEvents = api.container.lookup("service:app-events");
+  const topicTrackingState = api.container.lookup(
+    "service:topic-tracking-state"
+  );
   let composerSavedFromNested = false;
 
   appEvents.on("composer:saved", () => {
@@ -57,52 +58,53 @@ export default apiInitializer((api) => {
     }
   );
 
-  const originalRouteTo = DiscourseURL.routeTo;
-  DiscourseURL.routeTo = function (path, opts) {
+  // Intercept topic URL routing via the route-to-url transformer.
+  // This replaces a direct monkey-patch of DiscourseURL.routeTo with
+  // the official value transformer API, which is composable and
+  // conflict-free with other plugins.
+  api.registerValueTransformer("route-to-url", ({ value: path }) => {
+    // After composer save on nested route, suppress the redirect to flat view.
+    // Returning null tells routeTo to abort navigation.
     if (composerSavedFromNested && /^\/t\//.test(path)) {
       composerSavedFromNested = false;
-      return;
+      return null;
     }
 
     const match = TOPIC_URL_RE.exec(path);
-    if (match) {
-      const [, slug, topicId, postNumber, queryString] = match;
+    if (!match) {
+      return path;
+    }
 
-      if (queryString) {
-        const params = new URLSearchParams(queryString);
-        if (params.has("flat")) {
-          return originalRouteTo.call(DiscourseURL, path, opts);
-        }
-      }
+    const [, slug, topicId, postNumber, queryString] = match;
 
-      const id = parseInt(topicId, 10);
-
-      // For site-wide default we can redirect immediately.
-      // For per-category default, look up the category from the
-      // session's topic list (populated by the homepage/discovery).
-      let categoryId;
-      const topic = session.topicList?.topics?.find((t) => t.id === id);
-      if (topic) {
-        categoryId = topic.category_id;
-      }
-
-      if (isNestedDefault(siteSettings, categoryId)) {
-        // Convert post_number from path segment to query param for deep-linking.
-        const nestedPath = buildNestedPath(slug, topicId, postNumber);
-        return originalRouteTo.call(DiscourseURL, nestedPath, opts);
+    // Respect explicit ?flat param to force flat view
+    if (queryString) {
+      const params = new URLSearchParams(queryString);
+      if (params.has("flat")) {
+        return path;
       }
     }
 
-    return originalRouteTo.call(DiscourseURL, path, opts);
-  };
+    const id = parseInt(topicId, 10);
 
-  // Fallback: if a topic URL wasn't intercepted in routeTo (e.g. direct
-  // navigation where we didn't have the category cached), intercept before
-  // the topic route's model hook runs to avoid loading the full post stream.
-  const topicTrackingState = api.container.lookup(
-    "service:topic-tracking-state"
-  );
+    // Look up category from topic tracking state (most reliable source)
+    // or fall back to session topic list for discovery-loaded topics.
+    let categoryId;
+    const trackedState = topicTrackingState.findState(id);
+    if (trackedState) {
+      categoryId = trackedState.category_id;
+    }
 
+    if (isNestedDefault(siteSettings, categoryId)) {
+      return buildNestedPath(slug, topicId, postNumber);
+    }
+
+    return path;
+  });
+
+  // Fallback: if a topic URL wasn't intercepted by the route-to-url
+  // transformer (e.g. direct URL entry where the topic isn't in tracking
+  // state yet), intercept before the topic route's model hook runs.
   router.on("routeWillChange", (transition) => {
     const toName = transition.to?.name;
     if (toName !== "topic.fromParams" && toName !== "topic.fromParamsNear") {
@@ -122,14 +124,9 @@ export default apiInitializer((api) => {
     const slug = topicParams.slug;
 
     let categoryId;
-    const trackedState = topicTrackingState.findState(topicId);
-    if (trackedState) {
-      categoryId = trackedState.category_id;
-    } else {
-      const topic = session.topicList?.topics?.find((t) => t.id === topicId);
-      if (topic) {
-        categoryId = topic.category_id;
-      }
+    const tracked = topicTrackingState.findState(topicId);
+    if (tracked) {
+      categoryId = tracked.category_id;
     }
 
     if (!isNestedDefault(siteSettings, categoryId)) {

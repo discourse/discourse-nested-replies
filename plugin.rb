@@ -19,13 +19,6 @@ end
 require_relative "lib/discourse_nested_replies/engine"
 
 after_initialize do
-  # --- PostSerializer: pass direct_reply_counts via INSTANCE_VARS ---
-  # This lets callers pass a preloaded hash as a serializer option.
-  # The constructor auto-sets it as @direct_reply_counts on the instance.
-  add_to_class(:post_serializer, :direct_reply_counts) { @direct_reply_counts }
-  add_to_class(:post_serializer, "direct_reply_counts=") { |val| @direct_reply_counts = val }
-  PostSerializer::INSTANCE_VARS << :direct_reply_counts
-
   # --- TopicView.on_preload: make the flat view nested-aware ---
   # After TopicView loads posts for the flat view, batch-load direct reply
   # counts so the flat topic JSON response includes reply count metadata.
@@ -46,25 +39,18 @@ after_initialize do
     topic_view.instance_variable_set(:@nested_replies_direct_reply_counts, counts)
   end
 
-  # Helper to retrieve flat-view preloaded counts from TopicView
-  add_to_class(:post_serializer, :nested_replies_flat_view_counts) do
-    return nil unless @topic_view
-    @topic_view.instance_variable_get(:@nested_replies_direct_reply_counts)
-  end
-
   # --- Serialize direct_reply_count on posts (gated) ---
-  # Included when @direct_reply_counts is populated by our nested controller
-  # OR when the TopicView.on_preload hook above ran for the flat view.
-  # Zero overhead on serialization paths that provide neither.
+  # Included when the TopicView.on_preload hook above populated reply counts.
+  # Zero overhead on serialization paths where no counts were preloaded.
   add_to_serializer(
     :post,
     :direct_reply_count,
     include_condition: -> do
-      @direct_reply_counts.present? || nested_replies_flat_view_counts.present?
+      @topic_view&.instance_variable_get(:@nested_replies_direct_reply_counts).present?
     end,
   ) do
-    counts = @direct_reply_counts || nested_replies_flat_view_counts
-    counts&.dig(object.post_number) || 0
+    counts = @topic_view.instance_variable_get(:@nested_replies_direct_reply_counts)
+    counts[object.post_number] || 0
   end
 
   # --- Category custom field: nested_replies_default_for_category ---
@@ -105,7 +91,7 @@ after_initialize do
       super
     end
   end
-  PostSerializer.prepend(DiscourseNestedReplies::PostSerializerReactionsPatch)
+  reloadable_patch { PostSerializer.prepend(DiscourseNestedReplies::PostSerializerReactionsPatch) }
 
   # --- Depth cap: re-parent replies at max depth ---
   # When nested_replies_cap_nesting_depth is enabled and a user replies to a

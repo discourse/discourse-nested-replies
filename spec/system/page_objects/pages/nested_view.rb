@@ -3,6 +3,8 @@
 module PageObjects
   module Pages
     class NestedView < PageObjects::Pages::Base
+      SORT_LABELS = { "top" => "Top", "new" => "New", "old" => "Old" }.freeze
+
       def visit_nested(topic)
         page.visit("/nested/#{topic.slug}/#{topic.id}")
         self
@@ -19,6 +21,10 @@ module PageObjects
 
       def has_nested_view?
         has_css?(".nested-view")
+      end
+
+      def has_no_nested_view?
+        has_no_css?(".nested-view")
       end
 
       def has_root_post?(post)
@@ -82,17 +88,35 @@ module PageObjects
       end
 
       def has_reply_button_for?(post)
-        has_css?(
-          "[data-post-number='#{post.post_number}'] .post-action-menu__reply",
-        )
+        has_css?("[data-post-number='#{post.post_number}'] .post-action-menu__reply")
+      end
+
+      def has_children_visible_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.has_css?(".nested-post-children")
+      end
+
+      def has_no_children_visible_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.has_no_css?(".nested-post-children")
+      end
+
+      def has_flat_view_link?
+        has_css?(".nested-view__flat-link")
+      end
+
+      def has_sort_active?(sort)
+        has_css?(".nested-sort-selector__option--active", text: SORT_LABELS[sort])
+      end
+
+      def has_op_post?
+        has_css?(".nested-view__op")
       end
 
       # ── Actions ───────────────────────────────────────────────────
 
       def click_reply_on_post(post)
-        find(
-          "[data-post-number='#{post.post_number}'] .post-action-menu__reply",
-        ).click
+        find("[data-post-number='#{post.post_number}'] .post-action-menu__reply").click
         self
       end
 
@@ -111,6 +135,12 @@ module PageObjects
         self
       end
 
+      def click_depth_line(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.find(".nested-post__depth-line").click
+        self
+      end
+
       def click_view_full_thread
         find(".nested-context-view__full-thread").click
         self
@@ -118,6 +148,16 @@ module PageObjects
 
       def click_view_parent_context
         find(".nested-context-view__parent-context").click
+        self
+      end
+
+      def click_flat_view_link
+        find(".nested-view__flat-link").click
+        self
+      end
+
+      def click_sort(sort)
+        find(".nested-sort-selector__option", text: SORT_LABELS[sort]).click
         self
       end
 
@@ -131,6 +171,10 @@ module PageObjects
 
       def post_container(post)
         find("[data-post-number='#{post.post_number}']")
+      end
+
+      def nested_post_wrapper(post)
+        find("[data-post-number='#{post.post_number}']").ancestor(".nested-post", match: :first)
       end
     end
   end
