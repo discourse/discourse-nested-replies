@@ -17,6 +17,7 @@ module ::DiscourseNestedReplies
 end
 
 require_relative "lib/discourse_nested_replies/engine"
+require_relative "lib/discourse_nested_replies/ancestor_walker"
 
 after_initialize do
   # --- TopicView.on_preload: make the flat view nested-aware ---
@@ -102,27 +103,25 @@ after_initialize do
     next unless SiteSetting.nested_replies_cap_nesting_depth
     next if reply_to_post_number.blank?
 
-    # Count depth of the post we're replying to by walking up the chain
-    depth = 0
-    current_number = reply_to_post_number
     max_depth = SiteSetting.nested_replies_max_depth
 
-    while current_number.present? && depth < max_depth + 2
-      ancestor = Post.find_by(topic_id: topic_id, post_number: current_number, deleted_at: nil)
-      break unless ancestor
-      depth += 1
-      current_number = ancestor.reply_to_post_number
-      break if current_number.nil? || current_number == 1
-    end
+    # Walk ancestors (excluding deleted, stopping before OP) to measure chain depth
+    ancestors =
+      DiscourseNestedReplies.walk_ancestors(
+        topic_id: topic_id,
+        start_post_number: reply_to_post_number,
+        limit: max_depth + 2,
+        exclude_deleted: true,
+        stop_at_op: true,
+      )
+    next if ancestors.empty?
+
+    depth = ancestors.map(&:depth).max
+    parent_reply_to = ancestors.find { |a| a.depth == 1 }&.reply_to_post_number
 
     # Re-parent when the reply would exceed max depth.
     # depth counts hops (visual_depth + 1), so > means visual_depth >= max_depth.
-    if depth > max_depth
-      parent = Post.find_by(topic_id: topic_id, post_number: reply_to_post_number, deleted_at: nil)
-      if parent&.reply_to_post_number.present?
-        self.reply_to_post_number = parent.reply_to_post_number
-      end
-    end
+    self.reply_to_post_number = parent_reply_to if depth > max_depth && parent_reply_to.present?
   end
 
   # --- Stats maintenance callbacks ---
@@ -131,52 +130,69 @@ after_initialize do
   # total_descendant_count: incremented on ALL ancestors up the reply chain.
 
   add_model_callback(:post, :after_create) do
-    if reply_to_post_number.present?
-      current_number = reply_to_post_number
-      is_direct_parent = true
+    next if reply_to_post_number.blank?
 
-      while current_number.present?
-        ancestor = Post.find_by(topic_id: topic_id, post_number: current_number, deleted_at: nil)
-        break unless ancestor
+    # Walk ancestors (excluding deleted, including OP) for stats increment
+    ancestors =
+      DiscourseNestedReplies.walk_ancestors(
+        topic_id: topic_id,
+        start_post_number: reply_to_post_number,
+        exclude_deleted: true,
+      )
 
-        stat = NestedViewPostStat.find_or_initialize_by(post_id: ancestor.id)
-        stat.direct_reply_count = (stat.direct_reply_count || 0) + 1 if is_direct_parent
-        stat.total_descendant_count = (stat.total_descendant_count || 0) + 1
-        stat.save!
+    next if ancestors.empty?
 
-        is_direct_parent = false
-        current_number = ancestor.reply_to_post_number
-      end
-    end
+    ancestor_ids = ancestors.map(&:id)
+    direct_parent_id = ancestors.find { |a| a.depth == 1 }&.id
+
+    # Single upsert: increment total_descendant_count for all ancestors,
+    # direct_reply_count only for the immediate parent.
+    DB.exec(<<~SQL, ids: ancestor_ids, parent_id: direct_parent_id)
+      INSERT INTO nested_view_post_stats (post_id, direct_reply_count, total_descendant_count, created_at, updated_at)
+      SELECT aid,
+             CASE WHEN aid = :parent_id THEN 1 ELSE 0 END,
+             1,
+             NOW(), NOW()
+      FROM unnest(ARRAY[:ids]::int[]) AS aid
+      ON CONFLICT (post_id) DO UPDATE SET
+        total_descendant_count = nested_view_post_stats.total_descendant_count + 1,
+        direct_reply_count = nested_view_post_stats.direct_reply_count +
+          CASE WHEN nested_view_post_stats.post_id = :parent_id THEN 1 ELSE 0 END,
+        updated_at = NOW()
+    SQL
   end
 
   add_model_callback(:post, :after_destroy) do
     if reply_to_post_number.present?
-      # This post's own descendant count needs to be subtracted from all ancestors
-      my_stat = NestedViewPostStat.find_by(post_id: id)
-      my_descendants = my_stat&.total_descendant_count || 0
+      my_descendants = NestedViewPostStat.where(post_id: id).pick(:total_descendant_count) || 0
       removed = 1 + my_descendants
 
-      current_number = reply_to_post_number
-      is_direct_parent = true
+      # Walk ancestors (including deleted — post may already be soft-deleted) for stats decrement
+      ancestors =
+        DiscourseNestedReplies.walk_ancestors(
+          topic_id: topic_id,
+          start_post_number: reply_to_post_number,
+          exclude_deleted: false,
+        )
 
-      while current_number.present?
-        ancestor = Post.find_by(topic_id: topic_id, post_number: current_number)
-        break unless ancestor
+      if ancestors.present?
+        ancestor_ids = ancestors.map(&:id)
+        direct_parent_id = ancestors.find { |a| a.depth == 1 }&.id
 
-        stat = NestedViewPostStat.find_by(post_id: ancestor.id)
-        if stat
-          stat.direct_reply_count = [stat.direct_reply_count - 1, 0].max if is_direct_parent
-          stat.total_descendant_count = [stat.total_descendant_count - removed, 0].max
-          stat.save!
-        end
-
-        is_direct_parent = false
-        current_number = ancestor.reply_to_post_number
+        # Single UPDATE: decrement stats for all ancestors, clamped at 0
+        DB.exec(<<~SQL, ids: ancestor_ids, parent_id: direct_parent_id, removed: removed)
+          UPDATE nested_view_post_stats
+          SET total_descendant_count = GREATEST(total_descendant_count - :removed, 0),
+              direct_reply_count = GREATEST(
+                direct_reply_count - CASE WHEN post_id = :parent_id THEN 1 ELSE 0 END,
+                0
+              ),
+              updated_at = NOW()
+          WHERE post_id = ANY(ARRAY[:ids]::int[])
+        SQL
       end
     end
 
-    # Clean up this post's own stat row
     NestedViewPostStat.where(post_id: id).delete_all
   end
 end

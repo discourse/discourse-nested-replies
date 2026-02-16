@@ -133,15 +133,26 @@ module ::DiscourseNestedReplies
       raise Discourse::NotFound unless target
 
       ancestors = []
-      unless context_depth == 0
-        # Walk up the ancestor chain, optionally limited to context_depth levels
-        current = target
-        while current.reply_to_post_number.present? && current.reply_to_post_number != 1
-          break if context_depth && ancestors.length >= context_depth
-          parent = @topic.posts.find_by(post_number: current.reply_to_post_number)
-          break unless parent
-          ancestors.unshift(parent)
-          current = parent
+      unless context_depth == 0 || target.reply_to_post_number.blank? ||
+               target.reply_to_post_number == 1
+        depth_limit = context_depth || 100
+
+        # Walk ancestors (including deleted for now, visibility applied below; stop before OP)
+        ancestor_rows =
+          DiscourseNestedReplies.walk_ancestors(
+            topic_id: @topic.id,
+            start_post_number: target.reply_to_post_number,
+            limit: depth_limit,
+            exclude_deleted: false,
+            stop_at_op: true,
+          )
+        ancestor_post_numbers = ancestor_rows.sort_by { |a| -a.depth }.map(&:post_number)
+
+        if ancestor_post_numbers.present?
+          scope = @topic.posts.where(post_number: ancestor_post_numbers)
+          scope = apply_visibility(scope)
+          loaded = load_posts_for_tree(scope).to_a.index_by(&:post_number)
+          ancestors = ancestor_post_numbers.filter_map { |pn| loaded[pn] }
         end
       end
 
