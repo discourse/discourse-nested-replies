@@ -2,6 +2,7 @@ import Route from "@ember/routing/route";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import PostScreenTracker from "discourse/lib/post-screen-tracker";
+import processNode from "../lib/process-node";
 
 export default class NestedRoute extends Route {
   @service header;
@@ -71,13 +72,9 @@ export default class NestedRoute extends Route {
 
     const opPost = data.op_post ? assignTopic(data.op_post) : null;
 
-    const processNode = (node) => {
-      const post = assignTopic(node);
-      const children = (node.children || []).map((child) => processNode(child));
-      return { post, children };
-    };
-
-    const rootNodes = (data.roots || []).map((root) => processNode(root));
+    const rootNodes = (data.roots || []).map((root) =>
+      processNode(this.store, topic, root)
+    );
 
     return {
       topic,
@@ -106,13 +103,7 @@ export default class NestedRoute extends Route {
 
     const opPost = data.op_post ? assignTopic(data.op_post) : null;
 
-    const processNode = (node) => {
-      const post = assignTopic(node);
-      const children = (node.children || []).map((child) => processNode(child));
-      return { post, children };
-    };
-
-    const targetNode = processNode(data.target_post);
+    const targetNode = processNode(this.store, topic, data.target_post);
     const ancestors = (data.ancestor_chain || []).map((a) => assignTopic(a));
     const noAncestors = ancestors.length === 0;
 

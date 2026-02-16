@@ -13,6 +13,7 @@ import Category from "discourse/models/category";
 import Composer from "discourse/models/composer";
 import Topic from "discourse/models/topic";
 import { i18n } from "discourse-i18n";
+import processNode from "../lib/process-node";
 
 export default class NestedController extends Controller {
   @service appEvents;
@@ -311,15 +312,17 @@ export default class NestedController extends Controller {
     const ids = [...this.newRootPostIds];
     this.newRootPostIds = [];
 
+    const results = await Promise.allSettled(
+      ids.map((id) => ajax(`/posts/${id}.json`))
+    );
+
     const newNodes = [];
-    for (const id of ids) {
-      try {
-        const postData = await ajax(`/posts/${id}.json`);
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        const postData = result.value;
         const post = this.store.createRecord("post", postData);
         post.topic = this.topic;
         newNodes.push({ post, children: [] });
-      } catch {
-        // Post may not be visible
       }
     }
 
@@ -364,11 +367,6 @@ export default class NestedController extends Controller {
   }
 
   _processNode(nodeData) {
-    const post = this.store.createRecord("post", nodeData);
-    post.topic = this.topic;
-    const children = (nodeData.children || []).map((child) =>
-      this._processNode(child)
-    );
-    return { post, children };
+    return processNode(this.store, this.topic, nodeData);
   }
 }

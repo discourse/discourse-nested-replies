@@ -2,10 +2,9 @@
 
 # name: discourse-nested-replies
 # about: Reddit-style nested/threaded view for Discourse topics
-# meta_topic_id: TODO
 # version: 0.1.0
 # authors: Discourse
-# url: TODO
+# url: https://github.com/discourse/discourse-nested-replies
 # required_version: 2.7.0
 
 enabled_site_setting :nested_replies_enabled
@@ -18,8 +17,19 @@ end
 
 require_relative "lib/discourse_nested_replies/engine"
 require_relative "lib/discourse_nested_replies/ancestor_walker"
+require_relative "lib/discourse_nested_replies/tree_loader"
+require_relative "lib/discourse_nested_replies/post_preloader"
+require_relative "lib/discourse_nested_replies/post_tree_serializer"
 
 after_initialize do
+  add_to_class(:topic_view, :nested_replies_direct_reply_counts) do
+    @nested_replies_direct_reply_counts
+  end
+
+  add_to_class(:topic_view, :nested_replies_direct_reply_counts=) do |counts|
+    @nested_replies_direct_reply_counts = counts
+  end
+
   # --- TopicView.on_preload: make the flat view nested-aware ---
   # After TopicView loads posts for the flat view, batch-load direct reply
   # counts so the flat topic JSON response includes reply count metadata.
@@ -37,7 +47,7 @@ after_initialize do
         .group(:reply_to_post_number)
         .count
 
-    topic_view.instance_variable_set(:@nested_replies_direct_reply_counts, counts)
+    topic_view.nested_replies_direct_reply_counts = counts
   end
 
   # --- Serialize direct_reply_count on posts (gated) ---
@@ -46,11 +56,9 @@ after_initialize do
   add_to_serializer(
     :post,
     :direct_reply_count,
-    include_condition: -> do
-      @topic_view&.instance_variable_get(:@nested_replies_direct_reply_counts).present?
-    end,
+    include_condition: -> { @topic_view&.nested_replies_direct_reply_counts.present? },
   ) do
-    counts = @topic_view.instance_variable_get(:@nested_replies_direct_reply_counts)
+    counts = @topic_view.nested_replies_direct_reply_counts
     counts[object.post_number] || 0
   end
 

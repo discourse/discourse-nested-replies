@@ -7,6 +7,7 @@ import DButton from "discourse/components/d-button";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { i18n } from "discourse-i18n";
+import processNode from "../lib/process-node";
 import NestedPost from "./nested-post";
 
 export default class NestedPostChildren extends Component {
@@ -159,12 +160,7 @@ export default class NestedPostChildren extends Component {
   }
 
   _processNode(nodeData) {
-    const post = this.store.createRecord("post", nodeData);
-    post.topic = this.args.topic;
-    const children = (nodeData.children || []).map((child) =>
-      this._processNode(child)
-    );
-    return { post, children };
+    return processNode(this.store, this.args.topic, nodeData);
   }
 
   <template>

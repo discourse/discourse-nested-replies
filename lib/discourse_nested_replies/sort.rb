@@ -3,21 +3,24 @@
 module DiscourseNestedReplies
   module Sort
     ALGORITHMS = %w[top new old].freeze
-    DEFAULT = "top"
 
-    def self.apply(scope, algorithm, last_level: false)
-      return scope.order(created_at: :asc) if last_level
+    def self.sql_order_expression(algorithm, last_level: false)
+      return "created_at ASC" if last_level
 
       case algorithm
       when "top"
-        scope.order(like_count: :desc, post_number: :asc)
+        "like_count DESC, post_number ASC"
       when "new"
-        scope.order(created_at: :desc)
+        "created_at DESC"
       when "old"
-        scope.order(post_number: :asc)
+        "post_number ASC"
       else
-        scope.order(like_count: :desc, post_number: :asc)
+        "like_count DESC, post_number ASC"
       end
+    end
+
+    def self.apply(scope, algorithm, last_level: false)
+      scope.order(Arel.sql(sql_order_expression(algorithm, last_level: last_level)))
     end
 
     def self.sort_in_memory(posts, algorithm, last_level: false)
