@@ -198,7 +198,8 @@ module ::DiscourseNestedReplies
 
     def find_topic
       topic_id = params[:topic_id].to_i
-      @topic_view = TopicView.new(topic_id, current_user, skip_custom_fields: true)
+      @topic_view =
+        TopicView.new(topic_id, current_user, skip_custom_fields: true, skip_post_loading: true)
       @topic = @topic_view.topic
     rescue Discourse::InvalidAccess, Discourse::NotFound => e
       raise e
@@ -279,8 +280,7 @@ module ::DiscourseNestedReplies
 
       # Wrap in PreloadablePostsArray so on_preload hooks that call
       # .includes() or .pluck() work transparently with our loaded posts.
-      # reset_posts! replaces @posts and clears all dependent memoized state.
-      @topic_view.reset_posts!(PreloadablePostsArray.new(posts))
+      @topic_view.posts = PreloadablePostsArray.new(posts)
 
       # Load custom fields
       allowed_post_fields = TopicView.allowed_post_custom_fields(current_user, @topic)
