@@ -370,7 +370,6 @@
 
       .d-icon {
         color: var(--tertiary);
-        font-size: var(--font-down-2);
       }
 
       &.is-collapse {
@@ -408,10 +407,6 @@
 
     &:hover {
       color: var(--tertiary);
-    }
-
-    .d-icon {
-      font-size: var(--font-down-2);
     }
   }
 

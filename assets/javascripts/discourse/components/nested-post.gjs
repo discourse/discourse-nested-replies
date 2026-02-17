@@ -245,7 +245,7 @@ export default class NestedPost extends Component {
             data-post-number={{@post.post_number}}
             {{on "click" this.toggleExpanded}}
           >
-            {{icon "plus"}}
+            {{icon "nested-circle-plus"}}
             <span
               class="nested-post__collapsed-username"
             >{{@post.username}}</span>

@@ -45,7 +45,11 @@ export default class NestedRepliesToggleButton extends Component {
       }}
       ...attributes
       @action={{@buttonActions.toggleReplies}}
-      @icon={{if @state.repliesShown "chevron-up" "chevron-down"}}
+      @icon={{if
+        @state.repliesShown
+        "nested-circle-minus"
+        "nested-circle-plus"
+      }}
       @translatedLabel={{this.label}}
     />
   </template>
