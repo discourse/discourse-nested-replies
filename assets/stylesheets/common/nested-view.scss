@@ -376,6 +376,17 @@
     line-height: 1;
   }
 
+  &__pinned-badge {
+    font-size: var(--font-down-2);
+    font-weight: bold;
+    color: var(--success);
+    background: var(--success-low);
+    border: 1px solid var(--success-medium);
+    border-radius: var(--d-border-radius);
+    padding: 0.1em 0.4em;
+    line-height: 1;
+  }
+
   &__content {
     margin-top: 0.25em;
     margin-bottom: 0.25em;

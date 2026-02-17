@@ -27,6 +27,25 @@ module ::DiscourseNestedReplies
           .limit(TreeLoader::ROOTS_PER_PAGE)
       roots = loader.load_posts_for_tree(roots).to_a
 
+      # Pin: ensure the pinned root appears first on initial load
+      pinned_post_number =
+        if initial_load
+          @topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD]&.to_i
+        end
+
+      if pinned_post_number.present?
+        pinned_index = roots.index { |p| p.post_number == pinned_post_number }
+        if pinned_index
+          roots.unshift(roots.delete_at(pinned_index))
+        else
+          pinned_post =
+            loader.load_posts_for_tree(
+              loader.apply_visibility(@topic.posts.where(post_number: pinned_post_number)),
+            ).first
+          roots.unshift(pinned_post) if pinned_post
+        end
+      end
+
       tree_data = loader.batch_preload_tree(roots, sort, max_depth: TreeLoader::PRELOAD_DEPTH)
       children_map = tree_data[:children_map]
 
@@ -55,6 +74,7 @@ module ::DiscourseNestedReplies
         )
         result[:sort] = sort
         result[:message_bus_last_id] = @topic_view.message_bus_last_id
+        result[:pinned_post_number] = pinned_post_number if pinned_post_number.present?
       end
 
       render json: result
@@ -194,6 +214,25 @@ module ::DiscourseNestedReplies
                  serializer.serialize_tree(target, children_map, reply_counts, descendant_counts),
                message_bus_last_id: @topic_view.message_bus_last_id,
              }
+    end
+
+    # PUT /nested/:slug/:topic_id/pin
+    # Staff-only: pin or unpin a top-level reply for the topic.
+    def pin
+      guardian.ensure_can_edit!(@topic)
+      raise Discourse::InvalidAccess unless guardian.is_staff?
+
+      post_number = params[:post_number].presence&.to_i
+
+      if post_number
+        post = @topic.posts.where(post_number: post_number).first
+        raise Discourse::NotFound unless post
+      end
+
+      @topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD] = post_number
+      @topic.save_custom_fields
+
+      render json: { pinned_post_number: post_number }
     end
 
     private

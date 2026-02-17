@@ -5,6 +5,7 @@ DiscourseNestedReplies::Engine.routes.draw do
   get "/roots" => "nested_topics#roots"
   get "/children/:post_number" => "nested_topics#children"
   get "/context/:post_number" => "nested_topics#context"
+  put "/pin" => "nested_topics#pin"
 end
 
 Discourse::Application.routes.draw do

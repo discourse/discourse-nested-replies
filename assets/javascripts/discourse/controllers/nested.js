@@ -42,6 +42,7 @@ export default class NestedController extends Controller {
   @tracked newRootPostIds = [];
   @tracked editingTopic = false;
   @tracked postScreenTracker = null;
+  @tracked pinnedPostNumber = null;
   queryParams = ["sort", "post_number", "context"];
 
   // Flat registry of all rendered posts by post_number.
@@ -193,6 +194,42 @@ export default class NestedController extends Controller {
   @action
   recoverPost(post) {
     post.recover();
+  }
+
+  @action
+  async togglePinPost(post) {
+    if (!this.currentUser?.staff) {
+      return;
+    }
+
+    const isPinned = this.pinnedPostNumber === post.post_number;
+    const newValue = isPinned ? null : post.post_number;
+
+    try {
+      await ajax(
+        `/nested/${this.topic.slug}/${this.topic.id}/pin.json`,
+        {
+          type: "PUT",
+          data: { post_number: newValue },
+        },
+      );
+
+      this.pinnedPostNumber = newValue;
+
+      if (newValue) {
+        // Move pinned post to front of rootNodes
+        const idx = this.rootNodes.findIndex(
+          (n) => n.post.post_number === newValue
+        );
+        if (idx > 0) {
+          const pinned = this.rootNodes[idx];
+          const rest = this.rootNodes.filter((_, i) => i !== idx);
+          this.rootNodes = [pinned, ...rest];
+        }
+      }
+    } catch (e) {
+      popupAjaxError(e);
+    }
   }
 
   @action

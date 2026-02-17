@@ -84,6 +84,7 @@ export default class NestedRoute extends Route {
       hasMoreRoots: data.has_more_roots || false,
       sort: data.sort || "top",
       messageBusLastId: data.message_bus_last_id,
+      pinnedPostNumber: data.pinned_post_number || null,
       postNumber: params.post_number ? Number(params.post_number) : null,
       contextMode: false,
       contextChain: null,

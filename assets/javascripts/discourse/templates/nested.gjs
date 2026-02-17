@@ -46,6 +46,7 @@ export default <template>
       @recoverPost={{@controller.recoverPost}}
       @showFlags={{@controller.showFlags}}
       @postNumber={{@controller.postNumber}}
+      @pinnedPostNumber={{@controller.pinnedPostNumber}}
       @newRootPostCount={{@controller.newRootPostIds.length}}
       @loadNewRoots={{@controller.loadNewRoots}}
       @editingTopic={{@controller.editingTopic}}

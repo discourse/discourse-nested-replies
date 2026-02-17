@@ -206,6 +206,7 @@ export default class NestedPost extends Component {
         this.depthClass
         (if @parentLineHighlighted "--parent-line-highlighted")
         (if this.collapsed "nested-post--collapsed")
+        (if @isPinned "nested-post--pinned")
       }}
     >
       {{#if @collapseParent}}
@@ -273,6 +274,11 @@ export default class NestedPost extends Component {
               {{#if this.isOP}}
                 <span class="nested-post__op-badge">{{i18n
                     "discourse_nested_replies.op_badge"
+                  }}</span>
+              {{/if}}
+              {{#if @isPinned}}
+                <span class="nested-post__pinned-badge">{{i18n
+                    "discourse_nested_replies.pinned_reply"
                   }}</span>
               {{/if}}
             </div>

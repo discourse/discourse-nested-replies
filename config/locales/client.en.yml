@@ -30,6 +30,9 @@ en:
       collapse_parent: "Collapse parent thread"
       no_replies: "No replies yet."
       op_badge: "OP"
+      pinned_reply: "Pinned"
+      pin_reply: "Pin to top"
+      unpin_reply: "Unpin"
       context:
         view_full_thread: "View full thread"
         view_parent_context: "View parent context"

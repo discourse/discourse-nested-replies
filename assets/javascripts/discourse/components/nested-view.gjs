@@ -15,7 +15,7 @@ import TopicCategoryTagEditor from "discourse/components/topic-category-tag-edit
 import TopicTitleEditor from "discourse/components/topic-title-editor";
 import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
-import { gt } from "discourse/truth-helpers";
+import { eq, gt } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
@@ -126,6 +126,7 @@ export default class NestedView extends Component {
             @topic={{@topic}}
             @depth={{0}}
             @sort={{@sort}}
+            @isPinned={{eq node.post.post_number @pinnedPostNumber}}
             @replyToPost={{@replyToPost}}
             @editPost={{@editPost}}
             @deletePost={{@deletePost}}

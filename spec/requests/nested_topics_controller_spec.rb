@@ -142,6 +142,161 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       json = response.parsed_body
       expect(json["roots"]).to be_empty
     end
+
+    describe "pinned reply" do
+      fab!(:low_post) do
+        Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 1)
+      end
+      fab!(:high_post) do
+        Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 10)
+      end
+
+      def pin_post(post_number)
+        topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD] = post_number
+        topic.save_custom_fields
+      end
+
+      it "places the pinned reply first regardless of sort" do
+        pin_post(low_post.post_number)
+        sign_in(user)
+
+        get roots_url(topic, sort: "top")
+
+        json = response.parsed_body
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids.first).to eq(low_post.id)
+        expect(json["pinned_post_number"]).to eq(low_post.post_number)
+      end
+
+      it "does not include pinned_post_number when no reply is pinned" do
+        sign_in(user)
+
+        get roots_url(topic, sort: "top")
+
+        json = response.parsed_body
+        expect(json).not_to have_key("pinned_post_number")
+      end
+
+      it "fetches the pinned reply even when it would be on a later page" do
+        19.times do
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 5)
+        end
+        pin_post(low_post.post_number)
+        sign_in(user)
+
+        get roots_url(topic, sort: "top")
+
+        json = response.parsed_body
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids.first).to eq(low_post.id)
+      end
+
+      it "ignores a pinned post_number that references a deleted post" do
+        low_post.update!(deleted_at: Time.current)
+        pin_post(low_post.post_number)
+        sign_in(user)
+
+        get roots_url(topic, sort: "top")
+
+        json = response.parsed_body
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids).not_to include(low_post.id)
+      end
+
+      it "ignores a pinned post_number that does not exist" do
+        pin_post(99_999)
+        sign_in(user)
+
+        get roots_url(topic, sort: "top")
+
+        json = response.parsed_body
+        expect(response.status).to eq(200)
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids.first).to eq(high_post.id)
+      end
+
+      it "does not pin on subsequent pages" do
+        25.times do
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 5)
+        end
+        pin_post(low_post.post_number)
+        sign_in(user)
+
+        get roots_url(topic, page: 1, sort: "top")
+
+        json = response.parsed_body
+        expect(json).not_to have_key("pinned_post_number")
+      end
+    end
+
+    describe "PUT pin" do
+      fab!(:root_post) do
+        Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+      end
+
+      def pin_url(topic)
+        "/nested/#{topic.slug}/#{topic.id}/pin.json"
+      end
+
+      it "returns 403 for non-staff users" do
+        sign_in(user)
+        put pin_url(topic), params: { post_number: root_post.post_number }
+        expect(response.status).to eq(403)
+      end
+
+      it "allows staff to pin a post" do
+        sign_in(admin)
+        put pin_url(topic), params: { post_number: root_post.post_number }
+        expect(response.status).to eq(200)
+
+        json = response.parsed_body
+        expect(json["pinned_post_number"]).to eq(root_post.post_number)
+
+        topic.reload
+        expect(
+          topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD],
+        ).to eq(root_post.post_number)
+      end
+
+      it "allows staff to unpin a post" do
+        topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD] =
+          root_post.post_number
+        topic.save_custom_fields
+
+        sign_in(admin)
+        put pin_url(topic), params: { post_number: nil }
+        expect(response.status).to eq(200)
+
+        json = response.parsed_body
+        expect(json["pinned_post_number"]).to be_nil
+
+        topic.reload
+        expect(
+          topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD],
+        ).to be_nil
+      end
+
+      it "returns 404 for a nonexistent post_number" do
+        sign_in(admin)
+        put pin_url(topic), params: { post_number: 99_999 }
+        expect(response.status).to eq(404)
+      end
+
+      it "persists the pin so that roots returns it first" do
+        high_post =
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 10)
+
+        sign_in(admin)
+        put pin_url(topic), params: { post_number: root_post.post_number }
+        expect(response.status).to eq(200)
+
+        get roots_url(topic, sort: "top")
+        json = response.parsed_body
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids.first).to eq(root_post.id)
+        expect(json["pinned_post_number"]).to eq(root_post.post_number)
+      end
+    end
   end
 
   describe "GET children" do

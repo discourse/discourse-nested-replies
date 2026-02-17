@@ -15,6 +15,7 @@ register_svg_icon "nested-circle-minus"
 module ::DiscourseNestedReplies
   PLUGIN_NAME = "discourse-nested-replies"
   CATEGORY_DEFAULT_FIELD = "nested_replies_default_for_category"
+  PINNED_POST_NUMBER_FIELD = "nested_replies_pinned_post_number"
 end
 
 require_relative "lib/discourse_nested_replies/engine"
@@ -73,6 +74,10 @@ after_initialize do
   add_to_serializer(:basic_category, :nested_replies_default) do
     object.custom_fields[DiscourseNestedReplies::CATEGORY_DEFAULT_FIELD]
   end
+
+  # --- Pinned reply: staff can pin one top-level reply per topic ---
+  register_topic_custom_field_type(DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD, :integer)
+  register_editable_topic_custom_field(DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD, staff_only: true)
 
   # --- Preserve ?post_number through URL canonicalization redirects ---
   register_modifier(:redirect_to_correct_topic_additional_query_parameters) do |params|
