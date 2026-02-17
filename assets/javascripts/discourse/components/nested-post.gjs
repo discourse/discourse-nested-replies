@@ -44,6 +44,7 @@ export default class NestedPost extends Component {
       this,
       this._onChildCreated
     );
+    this.appEvents.trigger("nested-replies:post-registered", this.args.post);
   }
 
   willDestroy() {
@@ -53,6 +54,7 @@ export default class NestedPost extends Component {
       this,
       this._onChildCreated
     );
+    this.appEvents.trigger("nested-replies:post-unregistered", this.args.post);
   }
 
   _onChildCreated({ parentPostNumber, isOwnPost }) {

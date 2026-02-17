@@ -44,6 +44,12 @@ export default class NestedController extends Controller {
   @tracked postScreenTracker = null;
   queryParams = ["sort", "post_number", "context"];
 
+  // Flat registry of all rendered posts by post_number.
+  // Populated by NestedPost components via appEvents so that readPosts
+  // can find posts at any depth, not just those in the preloaded tree.
+  postRegistry = new Map();
+  _postEventsSubscribed = false;
+
   @cached
   @dependentKeyCompat
   get buffered() {
@@ -242,6 +248,24 @@ export default class NestedController extends Controller {
 
   subscribe() {
     this.unsubscribe();
+
+    this.appEvents.on(
+      "nested-replies:post-registered",
+      this,
+      this._onPostRegistered
+    );
+    this.appEvents.on(
+      "nested-replies:post-unregistered",
+      this,
+      this._onPostUnregistered
+    );
+    this._postEventsSubscribed = true;
+
+    // Register the OP post directly since it's not rendered by NestedPost
+    if (this.opPost) {
+      this.postRegistry.set(this.opPost.post_number, this.opPost);
+    }
+
     if (this.topic?.id && this.messageBusLastId != null) {
       this.messageBus.subscribe(
         `/topic/${this.topic.id}`,
@@ -252,7 +276,33 @@ export default class NestedController extends Controller {
   }
 
   unsubscribe() {
+    if (this._postEventsSubscribed) {
+      this.appEvents.off(
+        "nested-replies:post-registered",
+        this,
+        this._onPostRegistered
+      );
+      this.appEvents.off(
+        "nested-replies:post-unregistered",
+        this,
+        this._onPostUnregistered
+      );
+      this._postEventsSubscribed = false;
+    }
     this.messageBus.unsubscribe("/topic/*", this._onMessage);
+    this.postRegistry.clear();
+  }
+
+  _onPostRegistered(post) {
+    if (post?.post_number != null) {
+      this.postRegistry.set(post.post_number, post);
+    }
+  }
+
+  _onPostUnregistered(post) {
+    if (post?.post_number != null) {
+      this.postRegistry.delete(post.post_number);
+    }
   }
 
   @bind
@@ -336,33 +386,11 @@ export default class NestedController extends Controller {
       return;
     }
 
-    const postNumberSet = new Set(postNumbers);
-
-    const markRead = (post) => {
-      if (!post.read && postNumberSet.has(post.post_number)) {
+    for (const postNumber of postNumbers) {
+      const post = this.postRegistry.get(postNumber);
+      if (post && !post.read) {
         post.set("read", true);
       }
-    };
-
-    if (this.opPost) {
-      markRead(this.opPost);
-    }
-
-    const walkNodes = (nodes) => {
-      nodes?.forEach((node) => {
-        markRead(node.post);
-        walkNodes(node.children);
-      });
-    };
-
-    walkNodes(this.rootNodes);
-
-    if (this.contextChain) {
-      const walkChain = (node) => {
-        markRead(node.post);
-        node.children?.forEach(walkChain);
-      };
-      walkChain(this.contextChain);
     }
   }
 
