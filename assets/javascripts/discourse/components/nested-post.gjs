@@ -236,7 +236,13 @@ export default class NestedPost extends Component {
               (i18n "discourse_nested_replies.collapse")
               this.expandLabel
             }}
-          ></button>
+          >
+            {{#if this.expanded}}
+              <span class="nested-post__depth-line-icon">
+                {{icon "nested-circle-minus"}}
+              </span>
+            {{/if}}
+          </button>
         {{/if}}
       </div>
       <div class="nested-post__main">

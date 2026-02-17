@@ -1,5 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
-import NestedRepliesToggleButton from "../components/nested-replies-toggle-button";
+import NestedRepliesExpandButton from "../components/nested-replies-expand-button";
 
 export default apiInitializer((api) => {
   const siteSettings = api.container.lookup("service:site-settings");
@@ -8,6 +8,6 @@ export default apiInitializer((api) => {
   }
 
   api.registerValueTransformer("post-menu-buttons", ({ value: dag }) => {
-    dag.add("nested-replies-toggle", NestedRepliesToggleButton);
+    dag.add("nested-replies-expand", NestedRepliesExpandButton);
   });
 });

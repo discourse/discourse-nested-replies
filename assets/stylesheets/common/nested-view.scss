@@ -270,6 +270,10 @@
       &::after {
         background: var(--tertiary);
       }
+
+      .nested-post__depth-line-icon .d-icon {
+        color: var(--tertiary);
+      }
     }
 
     // When children are collapsed, turn the vertical line into an L-shape
@@ -294,6 +298,28 @@
           border-color: var(--tertiary);
         }
       }
+    }
+  }
+
+  &__depth-line-icon {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--secondary);
+
+    .d-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--primary-low);
+      transition: color 0.15s ease;
     }
   }
 
@@ -364,20 +390,12 @@
       }
     }
 
-    .post-action-menu__nested-replies-toggle {
+    .post-action-menu__nested-replies-expand {
       color: var(--tertiary);
       font-size: var(--font-down-1);
 
       .d-icon {
         color: var(--tertiary);
-      }
-
-      &.is-collapse {
-        color: var(--d-post-control-text-color);
-
-        .d-icon {
-          color: var(--d-post-control-text-color);
-        }
       }
     }
   }

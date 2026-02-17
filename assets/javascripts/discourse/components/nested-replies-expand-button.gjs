@@ -1,9 +1,8 @@
 import Component from "@glimmer/component";
 import DButton from "discourse/components/d-button";
-import concatClass from "discourse/helpers/concat-class";
 import { i18n } from "discourse-i18n";
 
-export default class NestedRepliesToggleButton extends Component {
+export default class NestedRepliesExpandButton extends Component {
   static extraControls = true;
 
   static shouldRender(args, _context, owner) {
@@ -14,6 +13,10 @@ export default class NestedRepliesToggleButton extends Component {
 
     const post = args.post;
     if (post.post_number === 1) {
+      return false;
+    }
+
+    if (args.state.repliesShown) {
       return false;
     }
 
@@ -29,9 +32,6 @@ export default class NestedRepliesToggleButton extends Component {
   }
 
   get label() {
-    if (this.args.state.repliesShown) {
-      return i18n("discourse_nested_replies.collapse");
-    }
     return i18n("discourse_nested_replies.collapsed_replies", {
       count: this.replyCount,
     });
@@ -39,17 +39,10 @@ export default class NestedRepliesToggleButton extends Component {
 
   <template>
     <DButton
-      class={{concatClass
-        "post-action-menu__nested-replies-toggle btn-icon-text"
-        (if @state.repliesShown "is-collapse")
-      }}
+      class="post-action-menu__nested-replies-expand btn-icon-text"
       ...attributes
       @action={{@buttonActions.toggleReplies}}
-      @icon={{if
-        @state.repliesShown
-        "nested-circle-minus"
-        "nested-circle-plus"
-      }}
+      @icon="nested-circle-plus"
       @translatedLabel={{this.label}}
     />
   </template>
