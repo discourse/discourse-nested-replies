@@ -101,6 +101,26 @@ module PageObjects
         wrapper.has_no_css?(".nested-post-children")
       end
 
+      def has_collapsed_bar_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.has_css?(".nested-post__collapsed-bar")
+      end
+
+      def has_no_collapsed_bar_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.has_no_css?(".nested-post__collapsed-bar")
+      end
+
+      def has_post_content_visible_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.has_css?(".nested-post__article")
+      end
+
+      def has_no_post_content_visible_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.has_no_css?(".nested-post__article")
+      end
+
       def has_flat_view_link?
         has_css?(".nested-view__flat-link")
       end
@@ -138,6 +158,12 @@ module PageObjects
       def click_depth_line(post)
         wrapper = nested_post_wrapper(post)
         wrapper.find(".nested-post__depth-line").click
+        self
+      end
+
+      def click_collapsed_bar(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.find(".nested-post__collapsed-bar").click
         self
       end
 

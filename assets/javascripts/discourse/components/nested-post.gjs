@@ -11,6 +11,7 @@ import PostCookedHtml from "discourse/components/post/cooked-html";
 import PostMenu from "discourse/components/post/menu";
 import PostMetaData from "discourse/components/post/meta-data";
 import concatClass from "discourse/helpers/concat-class";
+import icon from "discourse/helpers/d-icon";
 import { isTesting } from "discourse/lib/environment";
 import getURL, { getAbsoluteURL } from "discourse/lib/get-url";
 import postActionFeedback from "discourse/lib/post-action-feedback";
@@ -29,6 +30,7 @@ export default class NestedPost extends Component {
 
   @tracked expanded = (this.args.children?.length ?? 0) > 0;
   @tracked lineHighlighted = false;
+  @tracked collapsed = false;
 
   trackPost = modifier((element) => {
     this.args.postScreenTracker?.observe(element, this.args.post);
@@ -64,6 +66,7 @@ export default class NestedPost extends Component {
 
     if (isOwnPost && !this.expanded) {
       this.expanded = true;
+      this.collapsed = false;
     }
   }
 
@@ -117,7 +120,13 @@ export default class NestedPost extends Component {
 
   @action
   toggleExpanded() {
-    this.expanded = !this.expanded;
+    if (this.expanded) {
+      this.expanded = false;
+      this.collapsed = true;
+    } else {
+      this.expanded = true;
+      this.collapsed = false;
+    }
   }
 
   @action
@@ -194,6 +203,7 @@ export default class NestedPost extends Component {
         "nested-post"
         this.depthClass
         (if @parentLineHighlighted "--parent-line-highlighted")
+        (if this.collapsed "nested-post--collapsed")
       }}
     >
       {{#if @collapseParent}}
@@ -208,7 +218,7 @@ export default class NestedPost extends Component {
       {{/if}}
       <div class="nested-post__gutter">
         <PostAvatar @post={{@post}} @size="small" />
-        {{#if this.hasReplies}}
+        {{#if (and this.hasReplies (not this.collapsed))}}
           <button
             type="button"
             class={{concatClass
@@ -228,68 +238,86 @@ export default class NestedPost extends Component {
         {{/if}}
       </div>
       <div class="nested-post__main">
-        <article
-          class="nested-post__article"
-          data-post-number={{@post.post_number}}
-          {{this.trackPost}}
-        >
-          <div class="nested-post__header">
-            <PostMetaData @post={{@post}} @editPost={{@editPost}} />
-            {{#if this.isOP}}
-              <span class="nested-post__op-badge">{{i18n
-                  "discourse_nested_replies.op_badge"
-                }}</span>
-            {{/if}}
-          </div>
-          <div class="nested-post__content">
-            <PostCookedHtml @post={{@post}} />
-          </div>
-          <section class="nested-post__menu post-menu-area clearfix">
-            <PostMenu
-              @post={{@post}}
-              @canCreatePost={{true}}
-              @copyLink={{this.copyLink}}
-              @deletePost={{fn @deletePost @post}}
-              @editPost={{fn @editPost @post}}
-              @recoverPost={{fn @recoverPost @post}}
-              @replyToPost={{fn @replyToPost @post @depth}}
-              @share={{this.share}}
-              @showFlags={{fn @showFlags @post}}
-              @toggleLike={{this.toggleLike}}
-              @toggleReplies={{this.toggleExpanded}}
-              @repliesShown={{this.expanded}}
-              @showLogin={{this.noop}}
-            />
-          </section>
-          {{#if this.showContinueThread}}
-            <div class="nested-post__controls">
-              <a href={{this.contextUrl}} class="nested-post__continue-link">
-                {{i18n "discourse_nested_replies.continue_thread"}}
-              </a>
+        {{#if this.collapsed}}
+          <button
+            type="button"
+            class="nested-post__collapsed-bar"
+            data-post-number={{@post.post_number}}
+            {{on "click" this.toggleExpanded}}
+          >
+            {{icon "plus"}}
+            <span
+              class="nested-post__collapsed-username"
+            >{{@post.username}}</span>
+            <span class="nested-post__collapsed-separator">&middot;</span>
+            <span
+              class="nested-post__collapsed-reply-count"
+            >{{this.expandLabel}}</span>
+          </button>
+        {{else}}
+          <article
+            class="nested-post__article"
+            data-post-number={{@post.post_number}}
+            {{this.trackPost}}
+          >
+            <div class="nested-post__header">
+              <PostMetaData @post={{@post}} @editPost={{@editPost}} />
+              {{#if this.isOP}}
+                <span class="nested-post__op-badge">{{i18n
+                    "discourse_nested_replies.op_badge"
+                  }}</span>
+              {{/if}}
             </div>
-          {{/if}}
-        </article>
+            <div class="nested-post__content">
+              <PostCookedHtml @post={{@post}} />
+            </div>
+            <section class="nested-post__menu post-menu-area clearfix">
+              <PostMenu
+                @post={{@post}}
+                @canCreatePost={{true}}
+                @copyLink={{this.copyLink}}
+                @deletePost={{fn @deletePost @post}}
+                @editPost={{fn @editPost @post}}
+                @recoverPost={{fn @recoverPost @post}}
+                @replyToPost={{fn @replyToPost @post @depth}}
+                @share={{this.share}}
+                @showFlags={{fn @showFlags @post}}
+                @toggleLike={{this.toggleLike}}
+                @toggleReplies={{this.toggleExpanded}}
+                @repliesShown={{this.expanded}}
+                @showLogin={{this.noop}}
+              />
+            </section>
+            {{#if this.showContinueThread}}
+              <div class="nested-post__controls">
+                <a href={{this.contextUrl}} class="nested-post__continue-link">
+                  {{i18n "discourse_nested_replies.continue_thread"}}
+                </a>
+              </div>
+            {{/if}}
+          </article>
 
-        {{#if (and this.expanded (not this.atMaxDepth))}}
-          <NestedPostChildren
-            @topic={{@topic}}
-            @parentPostNumber={{@post.post_number}}
-            @preloadedChildren={{@children}}
-            @directReplyCount={{@post.direct_reply_count}}
-            @totalDescendantCount={{@post.total_descendant_count}}
-            @depth={{@depth}}
-            @sort={{@sort}}
-            @replyToPost={{@replyToPost}}
-            @editPost={{@editPost}}
-            @deletePost={{@deletePost}}
-            @recoverPost={{@recoverPost}}
-            @showFlags={{@showFlags}}
-            @collapseParent={{this.toggleExpanded}}
-            @highlightParentLine={{this.highlightLine}}
-            @unhighlightParentLine={{this.unhighlightLine}}
-            @parentLineHighlighted={{this.lineHighlighted}}
-            @postScreenTracker={{@postScreenTracker}}
-          />
+          {{#if (and this.expanded (not this.atMaxDepth))}}
+            <NestedPostChildren
+              @topic={{@topic}}
+              @parentPostNumber={{@post.post_number}}
+              @preloadedChildren={{@children}}
+              @directReplyCount={{@post.direct_reply_count}}
+              @totalDescendantCount={{@post.total_descendant_count}}
+              @depth={{@depth}}
+              @sort={{@sort}}
+              @replyToPost={{@replyToPost}}
+              @editPost={{@editPost}}
+              @deletePost={{@deletePost}}
+              @recoverPost={{@recoverPost}}
+              @showFlags={{@showFlags}}
+              @collapseParent={{this.toggleExpanded}}
+              @highlightParentLine={{this.highlightLine}}
+              @unhighlightParentLine={{this.unhighlightLine}}
+              @parentLineHighlighted={{this.lineHighlighted}}
+              @postScreenTracker={{@postScreenTracker}}
+            />
+          {{/if}}
         {{/if}}
       </div>
     </div>

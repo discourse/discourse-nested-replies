@@ -66,20 +66,21 @@ RSpec.describe "Nested view replying", type: :system do
       )
     end
 
-    it "auto-expands children after replying to a collapsed post" do
+    it "auto-expands a collapsed post after submitting a reply" do
       nested_view.visit_nested(topic)
       expect(nested_view).to have_children_visible_for(root_reply)
 
-      nested_view.click_depth_line(root_reply)
-      expect(nested_view).to have_no_children_visible_for(root_reply)
-
       nested_view.click_reply_on_post(root_reply)
       expect(composer).to be_opened
+
+      nested_view.click_depth_line(root_reply)
+      expect(nested_view).to have_collapsed_bar_for(root_reply)
 
       composer.fill_content("Reply to collapsed post")
       composer.submit
       expect(composer).to be_closed
 
+      expect(nested_view).to have_no_collapsed_bar_for(root_reply)
       expect(nested_view).to have_children_visible_for(root_reply)
     end
   end

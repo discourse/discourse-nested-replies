@@ -129,7 +129,9 @@
   --nested-connector-offset: 8px;
   --nested-vertical-gap: 0.5em;
   --nested-hook-width: calc(var(--nested-avatar-size) / 2);
-  --nested-line-offset: calc(var(--nested-connector-offset) + var(--nested-avatar-size) / 2);
+  --nested-line-offset: calc(
+    var(--nested-connector-offset) + var(--nested-avatar-size) / 2
+  );
   --nested-load-more-left-adjust: 2px;
 
   // Grid splits article (row 1) from children (row 2) so the gutter's
@@ -151,7 +153,9 @@
       top: -4px;
       left: calc(-1 * var(--nested-line-offset));
       width: var(--nested-hook-width);
-      height: calc(var(--nested-vertical-gap) + var(--nested-avatar-size) / 2 + 5px);
+      height: calc(
+        var(--nested-vertical-gap) + var(--nested-avatar-size) / 2 + 5px
+      );
       border-left: 2px solid var(--primary-low);
       border-bottom: 2px solid var(--primary-low);
       border-radius: 0 0 0 12px;
@@ -166,7 +170,9 @@
       content: "";
       position: absolute;
       left: calc(-1 * var(--nested-line-offset));
-      top: calc(var(--nested-vertical-gap) + var(--nested-avatar-size) / 2 + 1px - 10px);
+      top: calc(
+        var(--nested-vertical-gap) + var(--nested-avatar-size) / 2 + 1px - 10px
+      );
       bottom: 0;
       width: 2px;
       background: var(--primary-low);
@@ -384,6 +390,39 @@
     font-size: var(--font-down-1);
   }
 
+  &__collapsed-bar {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.15em 0.25em;
+    border: none;
+    background: none;
+    color: var(--primary-medium);
+    font-size: var(--font-down-1);
+    cursor: pointer;
+    border-radius: var(--d-border-radius);
+    white-space: nowrap;
+    align-self: center;
+
+    &:hover {
+      color: var(--tertiary);
+    }
+
+    .d-icon {
+      font-size: var(--font-down-2);
+    }
+  }
+
+  &__collapsed-separator {
+    color: var(--primary-low-mid);
+  }
+
+  &__collapsed-reply-count {
+    color: var(--tertiary);
+  }
+
   &__expand-btn {
     color: var(--tertiary);
     font-size: var(--font-down-1);
@@ -411,7 +450,9 @@
     &::before {
       content: "";
       position: absolute;
-      left: calc(-1 * var(--nested-line-offset) - var(--nested-load-more-left-adjust));
+      left: calc(
+        -1 * var(--nested-line-offset) - var(--nested-load-more-left-adjust)
+      );
       top: -1em;
       height: calc(50% + 1em);
       width: var(--nested-line-offset);
@@ -489,11 +530,12 @@
   .nested-post {
     --nested-column-gap: 2px;
     --nested-connector-offset: 6px;
-    --nested-hook-width: calc(var(--nested-connector-offset) + var(--nested-avatar-size) / 2);
+    --nested-hook-width: calc(
+      var(--nested-connector-offset) + var(--nested-avatar-size) / 2
+    );
     --nested-load-more-left-adjust: 0px;
 
     &__gutter {
-
       // Avatars were touching the swooping horizontal line and not aligned over the vertical lines
       .post-avatar {
         left: 2px;

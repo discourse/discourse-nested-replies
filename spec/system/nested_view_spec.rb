@@ -96,16 +96,28 @@ RSpec.describe "Nested view", type: :system do
       )
     end
 
-    it "collapses and re-expands children when clicking the depth line" do
+    it "collapses post content and children when clicking the depth line" do
       nested_view.visit_nested(topic)
 
       expect(nested_view).to have_post(child_reply)
       expect(nested_view).to have_children_visible_for(root_reply)
+      expect(nested_view).to have_no_collapsed_bar_for(root_reply)
 
       nested_view.click_depth_line(root_reply)
+      expect(nested_view).to have_collapsed_bar_for(root_reply)
+      expect(nested_view).to have_no_post_content_visible_for(root_reply)
       expect(nested_view).to have_no_children_visible_for(root_reply)
+    end
+
+    it "re-expands post content and children when clicking the collapsed bar" do
+      nested_view.visit_nested(topic)
 
       nested_view.click_depth_line(root_reply)
+      expect(nested_view).to have_collapsed_bar_for(root_reply)
+
+      nested_view.click_collapsed_bar(root_reply)
+      expect(nested_view).to have_no_collapsed_bar_for(root_reply)
+      expect(nested_view).to have_post_content_visible_for(root_reply)
       expect(nested_view).to have_children_visible_for(root_reply)
       expect(nested_view).to have_post(child_reply)
     end
