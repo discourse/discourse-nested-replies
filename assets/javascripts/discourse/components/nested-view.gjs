@@ -60,12 +60,12 @@ export default class NestedView extends Component {
               {{on "click" @startEditingTopic}}
               class="fancy-title"
             >
-              {{htmlSafe @topic.fancyTitle}}
-              {{#if @topic.details.can_edit}}
+              {{htmlSafe @topic.fancyTitle~}}
+              {{~#if @topic.details.can_edit~}}
                 <span class="edit-topic__wrapper">
                   {{icon "pencil" class="edit-topic"}}
                 </span>
-              {{/if}}
+              {{~/if}}
             </a>
           </h1>
           <TopicCategory @topic={{@topic}} class="topic-category" />
