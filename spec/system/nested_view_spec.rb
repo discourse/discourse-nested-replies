@@ -37,6 +37,25 @@ RSpec.describe "Nested view", type: :system do
     end
   end
 
+  describe "topic map" do
+    fab!(:root_reply) { Fabricate(:post, topic: topic, user: Fabricate(:user), raw: "A reply") }
+
+    it "displays the topic map" do
+      nested_view.visit_nested(topic)
+
+      expect(nested_view).to have_topic_map
+    end
+
+    it "hides the top replies button" do
+      topic.update!(has_summary: true)
+
+      nested_view.visit_nested(topic)
+
+      expect(nested_view).to have_topic_map
+      expect(nested_view).to have_no_top_replies_button
+    end
+  end
+
   describe "empty topic" do
     it "shows 'no replies' message when topic has no replies" do
       nested_view.visit_nested(topic)

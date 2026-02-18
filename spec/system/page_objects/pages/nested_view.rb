@@ -133,6 +133,14 @@ module PageObjects
         has_css?(".nested-view__op")
       end
 
+      def has_topic_map?
+        has_css?(".nested-view__topic-map .topic-map__contents")
+      end
+
+      def has_no_top_replies_button?
+        has_no_css?(".nested-view__topic-map .top-replies")
+      end
+
       # ── Actions ───────────────────────────────────────────────────
 
       def click_reply_on_post(post)

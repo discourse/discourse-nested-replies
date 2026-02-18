@@ -12,6 +12,7 @@ import PostMenu from "discourse/components/post/menu";
 import PostMetaData from "discourse/components/post/meta-data";
 import TopicCategory from "discourse/components/topic-category";
 import TopicCategoryTagEditor from "discourse/components/topic-category-tag-editor";
+import TopicMap from "discourse/components/topic-map";
 import TopicTitleEditor from "discourse/components/topic-title-editor";
 import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
@@ -25,6 +26,21 @@ export default class NestedView extends Component {
     this.args.postScreenTracker?.observe(element, this.args.opPost);
     return () => this.args.postScreenTracker?.unobserve(element);
   });
+
+  // Core's TopicMap requires a @postStream arg for flat-view features
+  // (filtering by participant, "Top Replies" toggle). The nested view has
+  // no PostStream, so we supply a stub that satisfies the interface with
+  // safe no-ops. The "Top Replies" button is hidden via CSS.
+  get postStreamStub() {
+    return {
+      summary: false,
+      loadingFilter: false,
+      userFilters: [],
+      showTopReplies() {},
+      cancelFilter() {},
+      refresh() {},
+    };
+  }
 
   get flatViewUrl() {
     return getURL(`/t/${this.args.topic.slug}/${this.args.topic.id}?flat=1`);
@@ -97,6 +113,15 @@ export default class NestedView extends Component {
           </article>
         </div>
       {{/if}}
+
+      <div class="nested-view__topic-map topic-map">
+        <TopicMap
+          @model={{@topic}}
+          @topicDetails={{@topic.details}}
+          @postStream={{this.postStreamStub}}
+          @showPMMap={{@topic.isPrivateMessage}}
+        />
+      </div>
 
       <div class="nested-view__controls">
         <NestedSortSelector @current={{@sort}} @onChange={{@changeSort}} />
