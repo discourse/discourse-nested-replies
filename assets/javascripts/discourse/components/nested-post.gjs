@@ -104,6 +104,10 @@ export default class NestedPost extends Component {
     );
   }
 
+  get isDeletedPlaceholder() {
+    return this.args.post.deleted_post_placeholder === true;
+  }
+
   get isOP() {
     return this.args.post.user_id === this.args.topic?.user_id;
   }
@@ -220,7 +224,13 @@ export default class NestedPost extends Component {
         ></button>
       {{/if}}
       <div class="nested-post__gutter">
-        <PostAvatar @post={{@post}} @size="small" />
+        {{#if this.isDeletedPlaceholder}}
+          <div class="nested-post__deleted-avatar-placeholder">
+            {{icon "trash-can"}}
+          </div>
+        {{else}}
+          <PostAvatar @post={{@post}} @size="small" />
+        {{/if}}
         {{#if (and this.hasReplies (not this.collapsed))}}
           <button
             type="button"
@@ -255,14 +265,25 @@ export default class NestedPost extends Component {
             {{on "click" this.toggleExpanded}}
           >
             {{icon "nested-circle-plus"}}
-            <span
-              class="nested-post__collapsed-username"
-            >{{@post.username}}</span>
+            <span class="nested-post__collapsed-username">{{if
+                this.isDeletedPlaceholder
+                (i18n "discourse_nested_replies.deleted_post_placeholder")
+                @post.username
+              }}</span>
             <span class="nested-post__collapsed-separator">&middot;</span>
             <span
               class="nested-post__collapsed-reply-count"
             >{{this.expandLabel}}</span>
           </button>
+        {{else if this.isDeletedPlaceholder}}
+          <div
+            class="nested-post__deleted-placeholder"
+            data-post-number={{@post.post_number}}
+          >
+            <span class="nested-post__deleted-label">
+              {{i18n "discourse_nested_replies.deleted_post_placeholder"}}
+            </span>
+          </div>
         {{else}}
           <article
             class="nested-post__article"
@@ -310,28 +331,28 @@ export default class NestedPost extends Component {
               </div>
             {{/if}}
           </article>
+        {{/if}}
 
-          {{#if (and this.expanded (not this.atMaxDepth))}}
-            <NestedPostChildren
-              @topic={{@topic}}
-              @parentPostNumber={{@post.post_number}}
-              @preloadedChildren={{@children}}
-              @directReplyCount={{@post.direct_reply_count}}
-              @totalDescendantCount={{@post.total_descendant_count}}
-              @depth={{@depth}}
-              @sort={{@sort}}
-              @replyToPost={{@replyToPost}}
-              @editPost={{@editPost}}
-              @deletePost={{@deletePost}}
-              @recoverPost={{@recoverPost}}
-              @showFlags={{@showFlags}}
-              @collapseParent={{this.toggleExpanded}}
-              @highlightParentLine={{this.highlightLine}}
-              @unhighlightParentLine={{this.unhighlightLine}}
-              @parentLineHighlighted={{this.lineHighlighted}}
-              @postScreenTracker={{@postScreenTracker}}
-            />
-          {{/if}}
+        {{#if (and this.expanded (not this.atMaxDepth) (not this.collapsed))}}
+          <NestedPostChildren
+            @topic={{@topic}}
+            @parentPostNumber={{@post.post_number}}
+            @preloadedChildren={{@children}}
+            @directReplyCount={{@post.direct_reply_count}}
+            @totalDescendantCount={{@post.total_descendant_count}}
+            @depth={{@depth}}
+            @sort={{@sort}}
+            @replyToPost={{@replyToPost}}
+            @editPost={{@editPost}}
+            @deletePost={{@deletePost}}
+            @recoverPost={{@recoverPost}}
+            @showFlags={{@showFlags}}
+            @collapseParent={{this.toggleExpanded}}
+            @highlightParentLine={{this.highlightLine}}
+            @unhighlightParentLine={{this.unhighlightLine}}
+            @parentLineHighlighted={{this.lineHighlighted}}
+            @postScreenTracker={{@postScreenTracker}}
+          />
         {{/if}}
       </div>
     </div>

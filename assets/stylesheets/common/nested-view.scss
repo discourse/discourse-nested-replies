@@ -517,6 +517,29 @@
     color: var(--tertiary);
   }
 
+  &__deleted-placeholder {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    padding: 0.25em 0;
+  }
+
+  &__deleted-label {
+    color: var(--primary-medium);
+    font-size: var(--font-down-1);
+    font-style: italic;
+  }
+
+  &__deleted-avatar-placeholder {
+    width: var(--nested-avatar-size);
+    height: var(--nested-avatar-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-low-mid);
+  }
+
   &__expand-btn {
     color: var(--tertiary);
     font-size: var(--font-down-1);

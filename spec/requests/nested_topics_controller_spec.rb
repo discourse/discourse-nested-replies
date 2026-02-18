@@ -133,14 +133,47 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       expect(root_json["direct_reply_count"]).to eq(1)
     end
 
-    it "excludes deleted posts for regular users" do
-      root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
-      root.update!(deleted_at: Time.current)
-      sign_in(user)
+    describe "deleted post placeholders" do
+      it "shows deleted root as placeholder for non-staff" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        root.update!(deleted_at: Time.current)
+        sign_in(user)
 
-      get roots_url(topic)
-      json = response.parsed_body
-      expect(json["roots"]).to be_empty
+        get roots_url(topic)
+        json = response.parsed_body
+        root_json = json["roots"].find { |r| r["id"] == root.id }
+        expect(root_json).to be_present
+        expect(root_json["deleted_post_placeholder"]).to eq(true)
+        expect(root_json["cooked"]).to eq("")
+        expect(root_json["raw"]).to be_nil
+        expect(root_json["actions_summary"]).to eq([])
+      end
+
+      it "preserves children under deleted root for non-staff" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        root.update!(deleted_at: Time.current)
+        sign_in(user)
+
+        get roots_url(topic)
+        json = response.parsed_body
+        root_json = json["roots"].find { |r| r["id"] == root.id }
+        expect(root_json["children"].length).to eq(1)
+        expect(root_json["children"].first["id"]).to eq(child.id)
+      end
+
+      it "shows deleted root as placeholder for staff too" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        root.update!(deleted_at: Time.current)
+        sign_in(admin)
+
+        get roots_url(topic)
+        json = response.parsed_body
+        root_json = json["roots"].find { |r| r["id"] == root.id }
+        expect(root_json).to be_present
+        expect(root_json["deleted_post_placeholder"]).to eq(true)
+        expect(root_json["cooked"]).to eq("")
+      end
     end
 
     describe "pinned reply" do
@@ -191,7 +224,7 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(root_ids.first).to eq(low_post.id)
       end
 
-      it "ignores a pinned post_number that references a deleted post" do
+      it "does not promote a deleted post to pinned position" do
         low_post.update!(deleted_at: Time.current)
         pin_post(low_post.post_number)
         sign_in(user)
@@ -200,7 +233,7 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
 
         json = response.parsed_body
         root_ids = json["roots"].map { |r| r["id"] }
-        expect(root_ids).not_to include(low_post.id)
+        expect(root_ids.first).to eq(high_post.id)
       end
 
       it "ignores a pinned post_number that does not exist" do
@@ -230,9 +263,7 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
     end
 
     describe "PUT pin" do
-      fab!(:root_post) do
-        Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
-      end
+      fab!(:root_post) { Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil) }
 
       def pin_url(topic)
         "/nested/#{topic.slug}/#{topic.id}/pin.json"
@@ -253,14 +284,15 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(json["pinned_post_number"]).to eq(root_post.post_number)
 
         topic.reload
-        expect(
-          topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD],
-        ).to eq(root_post.post_number)
+        expect(topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD]).to eq(
+          root_post.post_number,
+        )
       end
 
       it "allows staff to unpin a post" do
-        topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD] =
-          root_post.post_number
+        topic.custom_fields[
+          DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD
+        ] = root_post.post_number
         topic.save_custom_fields
 
         sign_in(admin)
@@ -271,9 +303,7 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(json["pinned_post_number"]).to be_nil
 
         topic.reload
-        expect(
-          topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD],
-        ).to be_nil
+        expect(topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD]).to be_nil
       end
 
       it "returns 404 for a nonexistent post_number" do
@@ -357,6 +387,48 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       get children_url(topic, root.post_number)
       expect(response.status).to eq(404)
     end
+
+    describe "deleted post placeholders" do
+      it "shows deleted child as placeholder for non-staff" do
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        child.update!(deleted_at: Time.current)
+        sign_in(user)
+
+        get children_url(topic, root.post_number)
+        json = response.parsed_body
+        child_json = json["children"].find { |c| c["id"] == child.id }
+        expect(child_json).to be_present
+        expect(child_json["deleted_post_placeholder"]).to eq(true)
+        expect(child_json["cooked"]).to eq("")
+      end
+
+      it "preserves children of a deleted post" do
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        grandchild =
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: child.post_number)
+        child.update!(deleted_at: Time.current)
+        sign_in(user)
+
+        get children_url(topic, root.post_number)
+        json = response.parsed_body
+        child_json = json["children"].find { |c| c["id"] == child.id }
+        expect(child_json["children"].length).to eq(1)
+        expect(child_json["children"].first["id"]).to eq(grandchild.id)
+      end
+
+      it "shows deleted child as placeholder for staff too" do
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        child.update!(deleted_at: Time.current)
+        sign_in(admin)
+
+        get children_url(topic, root.post_number)
+        json = response.parsed_body
+        child_json = json["children"].find { |c| c["id"] == child.id }
+        expect(child_json).to be_present
+        expect(child_json["deleted_post_placeholder"]).to eq(true)
+        expect(child_json["cooked"]).to eq("")
+      end
+    end
   end
 
   describe "GET context" do
@@ -429,6 +501,39 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       json = response.parsed_body
       expect(json["target_post"]["children"]).to be_an(Array)
       expect(json["target_post"]["children"].length).to eq(1)
+    end
+
+    describe "deleted post placeholders" do
+      it "shows deleted ancestor as placeholder for non-staff" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        grandchild =
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: child.post_number)
+        child.update!(deleted_at: Time.current)
+        sign_in(user)
+
+        get context_url(topic, grandchild.post_number)
+        json = response.parsed_body
+        ancestor_ids = json["ancestor_chain"].map { |a| a["id"] }
+        expect(ancestor_ids).to include(child.id)
+        deleted_ancestor = json["ancestor_chain"].find { |a| a["id"] == child.id }
+        expect(deleted_ancestor["deleted_post_placeholder"]).to eq(true)
+        expect(deleted_ancestor["cooked"]).to eq("")
+      end
+
+      it "preserves tree structure through deleted ancestors" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        grandchild =
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: child.post_number)
+        child.update!(deleted_at: Time.current)
+        sign_in(user)
+
+        get context_url(topic, grandchild.post_number)
+        json = response.parsed_body
+        ancestor_ids = json["ancestor_chain"].map { |a| a["id"] }
+        expect(ancestor_ids).to eq([root.id, child.id])
+      end
     end
   end
 end

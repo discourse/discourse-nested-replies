@@ -45,7 +45,7 @@ module ::DiscourseNestedReplies
     end
 
     def apply_visibility(scope)
-      scope = scope.where(deleted_at: nil) unless guardian.can_see_deleted_posts?(topic.category)
+      scope = scope.unscope(where: :deleted_at)
       scope = scope.where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
       scope
     end
@@ -107,10 +107,6 @@ module ::DiscourseNestedReplies
           post_types: [Post.types[:regular], Post.types[:moderator_action]],
         }
 
-        unless guardian.can_see_deleted_posts?(topic.category)
-          visibility_conditions << " AND deleted_at IS NULL"
-        end
-
         sibling_ids = DB.query_single(<<~SQL, **sql_params)
             SELECT id FROM (
               SELECT id, reply_to_post_number,
@@ -124,7 +120,8 @@ module ::DiscourseNestedReplies
           SQL
 
         if sibling_ids.present?
-          loaded_siblings = load_posts_for_tree(topic.posts.where(id: sibling_ids)).to_a
+          loaded_siblings =
+            load_posts_for_tree(topic.posts.with_deleted.where(id: sibling_ids)).to_a
           grouped = loaded_siblings.group_by(&:reply_to_post_number)
 
           # Re-sort in memory: load_posts_for_tree re-queries by ID without
@@ -154,10 +151,6 @@ module ::DiscourseNestedReplies
     # grandchildren, etc.) and returns them as a flat scope. Used when
     # cap_nesting_depth is ON to flatten deep legacy threads at the last level.
     def flat_descendants_scope(parent_post_number)
-      deleted_filter = guardian.can_see_deleted_posts?(topic.category) ? "" : "AND deleted_at IS NULL"
-      deleted_filter_aliased =
-        guardian.can_see_deleted_posts?(topic.category) ? "" : "AND p.deleted_at IS NULL"
-
       descendant_post_numbers =
         DB.query_single(<<~SQL, topic_id: topic.id, parent_number: parent_post_number)
           WITH RECURSIVE descendants AS (
@@ -166,19 +159,17 @@ module ::DiscourseNestedReplies
             WHERE topic_id = :topic_id
               AND reply_to_post_number = :parent_number
               AND post_number > 1
-              #{deleted_filter}
             UNION ALL
             SELECT p.post_number
             FROM posts p
             JOIN descendants d ON p.reply_to_post_number = d.post_number
             WHERE p.topic_id = :topic_id
               AND p.post_number > 1
-              #{deleted_filter_aliased}
           )
           SELECT post_number FROM descendants
         SQL
 
-      topic.posts.where(post_number: descendant_post_numbers).where(post_number: 2..)
+      topic.posts.with_deleted.where(post_number: descendant_post_numbers).where(post_number: 2..)
     end
 
     def configured_max_depth
@@ -189,7 +180,8 @@ module ::DiscourseNestedReplies
       return {} if post_numbers.empty?
 
       Post
-        .where(topic_id: topic.id, deleted_at: nil)
+        .with_deleted
+        .where(topic_id: topic.id)
         .where(reply_to_post_number: post_numbers)
         .group(:reply_to_post_number)
         .count

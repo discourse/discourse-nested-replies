@@ -36,13 +36,14 @@ module ::DiscourseNestedReplies
       if pinned_post_number.present?
         pinned_index = roots.index { |p| p.post_number == pinned_post_number }
         if pinned_index
-          roots.unshift(roots.delete_at(pinned_index))
+          pinned_post = roots[pinned_index]
+          roots.unshift(roots.delete_at(pinned_index)) if pinned_post.deleted_at.nil?
         else
           pinned_post =
             loader.load_posts_for_tree(
               loader.apply_visibility(@topic.posts.where(post_number: pinned_post_number)),
             ).first
-          roots.unshift(pinned_post) if pinned_post
+          roots.unshift(pinned_post) if pinned_post && pinned_post.deleted_at.nil?
         end
       end
 

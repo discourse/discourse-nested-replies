@@ -27,6 +27,14 @@ module ::DiscourseNestedReplies
       # total_descendant_count for display labels, with fallback chains.
       json[:direct_reply_count] = reply_counts[post.post_number] || 0
       json[:total_descendant_count] = descendant_counts[post.id] || 0
+
+      if post.deleted_at.present?
+        json[:deleted_post_placeholder] = true
+        json[:cooked] = ""
+        json[:raw] = nil
+        json[:actions_summary] = []
+      end
+
       json
     end
 

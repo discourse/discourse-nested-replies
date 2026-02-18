@@ -77,7 +77,10 @@ after_initialize do
 
   # --- Pinned reply: staff can pin one top-level reply per topic ---
   register_topic_custom_field_type(DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD, :integer)
-  register_editable_topic_custom_field(DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD, staff_only: true)
+  register_editable_topic_custom_field(
+    DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD,
+    staff_only: true,
+  )
 
   # --- Preserve ?post_number through URL canonicalization redirects ---
   register_modifier(:redirect_to_correct_topic_additional_query_parameters) do |params|
