@@ -28,7 +28,10 @@ export default class NestedPost extends Component {
   @service site;
   @service siteSettings;
 
-  @tracked expanded = (this.args.children?.length ?? 0) > 0;
+  @tracked
+  expanded =
+    (this.args.children?.length ?? 0) > 0 ||
+    this.args.post.deleted_post_placeholder === true;
   @tracked lineHighlighted = false;
   @tracked collapsed = false;
 
@@ -96,16 +99,16 @@ export default class NestedPost extends Component {
     return this.args.depth >= this.siteSettings.nested_replies_max_depth;
   }
 
+  get isDeletedPlaceholder() {
+    return this.args.post.deleted_post_placeholder === true;
+  }
+
   get showContinueThread() {
     return (
       this.atMaxDepth &&
       this.hasReplies &&
       !this.siteSettings.nested_replies_cap_nesting_depth
     );
-  }
-
-  get isDeletedPlaceholder() {
-    return this.args.post.deleted_post_placeholder === true;
   }
 
   get isOP() {
@@ -211,6 +214,7 @@ export default class NestedPost extends Component {
         (if @parentLineHighlighted "--parent-line-highlighted")
         (if this.collapsed "nested-post--collapsed")
         (if @isPinned "nested-post--pinned")
+        (if @post.deleted "nested-post--deleted")
       }}
     >
       {{#if @collapseParent}}
@@ -265,11 +269,15 @@ export default class NestedPost extends Component {
             {{on "click" this.toggleExpanded}}
           >
             {{icon "nested-circle-plus"}}
-            <span class="nested-post__collapsed-username">{{if
-                this.isDeletedPlaceholder
-                (i18n "discourse_nested_replies.deleted_post_placeholder")
-                @post.username
-              }}</span>
+            {{#if this.isDeletedPlaceholder}}
+              <span class="nested-post__collapsed-username">{{i18n
+                  "discourse_nested_replies.deleted_post_placeholder"
+                }}</span>
+            {{else}}
+              <span
+                class="nested-post__collapsed-username"
+              >{{@post.username}}</span>
+            {{/if}}
             <span class="nested-post__collapsed-separator">&middot;</span>
             <span
               class="nested-post__collapsed-reply-count"
@@ -280,9 +288,9 @@ export default class NestedPost extends Component {
             class="nested-post__deleted-placeholder"
             data-post-number={{@post.post_number}}
           >
-            <span class="nested-post__deleted-label">
-              {{i18n "discourse_nested_replies.deleted_post_placeholder"}}
-            </span>
+            <span class="nested-post__deleted-label">{{i18n
+                "discourse_nested_replies.deleted_post_placeholder"
+              }}</span>
           </div>
         {{else}}
           <article
@@ -333,7 +341,7 @@ export default class NestedPost extends Component {
           </article>
         {{/if}}
 
-        {{#if (and this.expanded (not this.atMaxDepth) (not this.collapsed))}}
+        {{#if (and this.expanded (not this.collapsed) (not this.atMaxDepth))}}
           <NestedPostChildren
             @topic={{@topic}}
             @parentPostNumber={{@post.post_number}}

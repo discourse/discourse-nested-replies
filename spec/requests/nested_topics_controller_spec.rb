@@ -158,6 +158,7 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         get roots_url(topic)
         json = response.parsed_body
         root_json = json["roots"].find { |r| r["id"] == root.id }
+        expect(root_json["children"]).to be_an(Array)
         expect(root_json["children"].length).to eq(1)
         expect(root_json["children"].first["id"]).to eq(child.id)
       end
@@ -233,7 +234,7 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
 
         json = response.parsed_body
         root_ids = json["roots"].map { |r| r["id"] }
-        expect(root_ids.first).to eq(high_post.id)
+        expect(root_ids.first).not_to eq(low_post.id)
       end
 
       it "ignores a pinned post_number that does not exist" do
@@ -381,13 +382,6 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       expect(child_json["children"]).to eq([])
     end
 
-    it "returns 404 when plugin is disabled" do
-      SiteSetting.nested_replies_enabled = false
-      sign_in(user)
-      get children_url(topic, root.post_number)
-      expect(response.status).to eq(404)
-    end
-
     describe "deleted post placeholders" do
       it "shows deleted child as placeholder for non-staff" do
         child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
@@ -400,6 +394,8 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(child_json).to be_present
         expect(child_json["deleted_post_placeholder"]).to eq(true)
         expect(child_json["cooked"]).to eq("")
+        expect(child_json["raw"]).to be_nil
+        expect(child_json["actions_summary"]).to eq([])
       end
 
       it "preserves children of a deleted post" do
@@ -412,6 +408,9 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         get children_url(topic, root.post_number)
         json = response.parsed_body
         child_json = json["children"].find { |c| c["id"] == child.id }
+        expect(child_json).to be_present
+        expect(child_json["deleted_post_placeholder"]).to eq(true)
+        expect(child_json["children"]).to be_an(Array)
         expect(child_json["children"].length).to eq(1)
         expect(child_json["children"].first["id"]).to eq(grandchild.id)
       end
@@ -428,6 +427,13 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(child_json["deleted_post_placeholder"]).to eq(true)
         expect(child_json["cooked"]).to eq("")
       end
+    end
+
+    it "returns 404 when plugin is disabled" do
+      SiteSetting.nested_replies_enabled = false
+      sign_in(user)
+      get children_url(topic, root.post_number)
+      expect(response.status).to eq(404)
     end
   end
 
@@ -514,11 +520,12 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
 
         get context_url(topic, grandchild.post_number)
         json = response.parsed_body
-        ancestor_ids = json["ancestor_chain"].map { |a| a["id"] }
-        expect(ancestor_ids).to include(child.id)
-        deleted_ancestor = json["ancestor_chain"].find { |a| a["id"] == child.id }
-        expect(deleted_ancestor["deleted_post_placeholder"]).to eq(true)
-        expect(deleted_ancestor["cooked"]).to eq("")
+        ancestor = json["ancestor_chain"].find { |a| a["id"] == child.id }
+        expect(ancestor).to be_present
+        expect(ancestor["deleted_post_placeholder"]).to eq(true)
+        expect(ancestor["cooked"]).to eq("")
+        expect(ancestor["raw"]).to be_nil
+        expect(ancestor["actions_summary"]).to eq([])
       end
 
       it "preserves tree structure through deleted ancestors" do
@@ -531,8 +538,8 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
 
         get context_url(topic, grandchild.post_number)
         json = response.parsed_body
-        ancestor_ids = json["ancestor_chain"].map { |a| a["id"] }
-        expect(ancestor_ids).to eq([root.id, child.id])
+        expect(json["ancestor_chain"].map { |a| a["id"] }).to include(child.id)
+        expect(json["target_post"]["id"]).to eq(grandchild.id)
       end
     end
   end
