@@ -30,8 +30,9 @@ export default class NestedPost extends Component {
 
   @tracked
   expanded =
-    (this.args.children?.length ?? 0) > 0 ||
-    this.args.post.deleted_post_placeholder === true;
+    ((this.args.children?.length ?? 0) > 0 ||
+      this.args.post.deleted_post_placeholder === true) &&
+    !this.args.defaultCollapsed;
   @tracked lineHighlighted = false;
   @tracked collapsed = false;
 
@@ -354,6 +355,7 @@ export default class NestedPost extends Component {
             @totalDescendantCount={{@post.total_descendant_count}}
             @depth={{@depth}}
             @sort={{@sort}}
+            @defaultCollapsed={{@defaultCollapsed}}
             @replyToPost={{@replyToPost}}
             @editPost={{@editPost}}
             @deletePost={{@deletePost}}

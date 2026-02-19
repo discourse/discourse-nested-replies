@@ -15,6 +15,7 @@ import TopicCategory from "discourse/components/topic-category";
 import TopicCategoryTagEditor from "discourse/components/topic-category-tag-editor";
 import TopicMap from "discourse/components/topic-map";
 import TopicTitleEditor from "discourse/components/topic-title-editor";
+import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
 import { eq, gt } from "discourse/truth-helpers";
@@ -43,12 +44,16 @@ export default class NestedView extends Component {
     };
   }
 
+  get isAma() {
+    return this.args.topic?.tags?.some((tag) => tag.name === "ama");
+  }
+
   get flatViewUrl() {
     return getURL(`/t/${this.args.topic.slug}/${this.args.topic.id}?flat=1`);
   }
 
   <template>
-    <div class="nested-view">
+    <div class={{concatClass "nested-view" (if this.isAma "nested-view--ama")}}>
       <div class="nested-view__header">
         {{#if @editingTopic}}
           <div class="edit-topic-title">
@@ -157,6 +162,7 @@ export default class NestedView extends Component {
             @depth={{0}}
             @sort={{@sort}}
             @isPinned={{eq node.post.post_number @pinnedPostNumber}}
+            @defaultCollapsed={{this.isAma}}
             @replyToPost={{@replyToPost}}
             @editPost={{@editPost}}
             @deletePost={{@deletePost}}
