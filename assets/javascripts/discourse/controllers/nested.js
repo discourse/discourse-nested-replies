@@ -5,6 +5,7 @@ import { dependentKeyCompat } from "@ember/object/compat";
 import { service } from "@ember/service";
 import BufferedProxy from "ember-buffered-proxy/proxy";
 import FlagModal from "discourse/components/modal/flag";
+import HistoryModal from "discourse/components/modal/history";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
@@ -206,13 +207,10 @@ export default class NestedController extends Controller {
     const newValue = isPinned ? null : post.post_number;
 
     try {
-      await ajax(
-        `/nested/${this.topic.slug}/${this.topic.id}/pin.json`,
-        {
-          type: "PUT",
-          data: { post_number: newValue },
-        },
-      );
+      await ajax(`/nested/${this.topic.slug}/${this.topic.id}/pin.json`, {
+        type: "PUT",
+        data: { post_number: newValue },
+      });
 
       this.pinnedPostNumber = newValue;
 
@@ -230,6 +228,18 @@ export default class NestedController extends Controller {
     } catch (e) {
       popupAjaxError(e);
     }
+  }
+
+  @action
+  showHistory(post) {
+    this.modal.show(HistoryModal, {
+      model: {
+        postId: post.id,
+        postVersion: "latest",
+        post,
+        editPost: (p) => this.editPost(p),
+      },
+    });
   }
 
   @action

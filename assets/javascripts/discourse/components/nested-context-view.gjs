@@ -1,5 +1,5 @@
 import Component from "@glimmer/component";
-import { array } from "@ember/helper";
+import { array, fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { schedule } from "@ember/runloop";
 import { htmlSafe } from "@ember/template";
@@ -119,7 +119,11 @@ export default class NestedContextView extends Component {
             <div class="nested-view__op-row">
               <PostAvatar @post={{@opPost}} />
               <div class="nested-view__op-body">
-                <PostMetaData @post={{@opPost}} @editPost={{@editPost}} />
+                <PostMetaData
+                  @post={{@opPost}}
+                  @editPost={{@editPost}}
+                  @showHistory={{fn @showHistory @opPost}}
+                />
                 <div class="nested-view__op-content">
                   <PostCookedHtml @post={{@opPost}} />
                 </div>
@@ -152,6 +156,7 @@ export default class NestedContextView extends Component {
               @deletePost={{@deletePost}}
               @recoverPost={{@recoverPost}}
               @showFlags={{@showFlags}}
+              @showHistory={{@showHistory}}
               @postScreenTracker={{@postScreenTracker}}
             />
           {{/each}}

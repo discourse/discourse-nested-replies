@@ -299,7 +299,11 @@ export default class NestedPost extends Component {
             {{this.trackPost}}
           >
             <div class="nested-post__header">
-              <PostMetaData @post={{@post}} @editPost={{@editPost}} />
+              <PostMetaData
+                @post={{@post}}
+                @editPost={{@editPost}}
+                @showHistory={{fn @showHistory @post}}
+              />
               {{#if this.isOP}}
                 <span class="nested-post__op-badge">{{i18n
                     "discourse_nested_replies.op_badge"
@@ -355,6 +359,7 @@ export default class NestedPost extends Component {
             @deletePost={{@deletePost}}
             @recoverPost={{@recoverPost}}
             @showFlags={{@showFlags}}
+            @showHistory={{@showHistory}}
             @collapseParent={{this.toggleExpanded}}
             @highlightParentLine={{this.highlightLine}}
             @unhighlightParentLine={{this.unhighlightLine}}

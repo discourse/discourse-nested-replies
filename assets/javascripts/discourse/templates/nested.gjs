@@ -18,6 +18,7 @@ export default <template>
       @deletePost={{@controller.deletePost}}
       @recoverPost={{@controller.recoverPost}}
       @showFlags={{@controller.showFlags}}
+      @showHistory={{@controller.showHistory}}
       @editingTopic={{@controller.editingTopic}}
       @startEditingTopic={{@controller.startEditingTopic}}
       @cancelEditingTopic={{@controller.cancelEditingTopic}}
@@ -45,6 +46,7 @@ export default <template>
       @deletePost={{@controller.deletePost}}
       @recoverPost={{@controller.recoverPost}}
       @showFlags={{@controller.showFlags}}
+      @showHistory={{@controller.showHistory}}
       @postNumber={{@controller.postNumber}}
       @pinnedPostNumber={{@controller.pinnedPostNumber}}
       @newRootPostCount={{@controller.newRootPostIds.length}}
