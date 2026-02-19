@@ -56,6 +56,57 @@ RSpec.describe "Nested view", type: :system do
     end
   end
 
+  describe "topic title editing" do
+    fab!(:admin) { Fabricate(:admin, refresh_auto_groups: true) }
+    fab!(:root_reply) { Fabricate(:post, topic: topic, user: Fabricate(:user), raw: "A reply") }
+
+    before { sign_in(admin) }
+
+    it "shows the topic title editor when clicking the title" do
+      nested_view.visit_nested(topic)
+
+      nested_view.click_edit_topic
+      expect(nested_view).to have_topic_title_editor
+    end
+
+    it "cancels topic title editing" do
+      nested_view.visit_nested(topic)
+
+      nested_view.click_edit_topic
+      expect(nested_view).to have_topic_title_editor
+
+      nested_view.click_cancel_edit_topic
+      expect(nested_view).to have_no_topic_title_editor
+    end
+
+    it "saves edited topic title" do
+      nested_view.visit_nested(topic)
+
+      nested_view.click_edit_topic
+      nested_view.fill_in_topic_title("Updated Topic Title")
+      nested_view.click_save_edit_topic
+
+      expect(nested_view).to have_no_topic_title_editor
+      expect(page).to have_css(".nested-view__title", text: "Updated Topic Title")
+    end
+  end
+
+  describe "post editing" do
+    fab!(:root_reply) do
+      Fabricate(:post, topic: topic, user: user, raw: "My editable reply")
+    end
+
+    let(:composer) { PageObjects::Components::Composer.new }
+
+    it "opens the composer in edit mode" do
+      nested_view.visit_nested(topic)
+
+      nested_view.click_post_edit_button(root_reply)
+      expect(composer).to be_opened
+      expect(composer).to have_content("My editable reply")
+    end
+  end
+
   describe "empty topic" do
     it "shows 'no replies' message when topic has no replies" do
       nested_view.visit_nested(topic)

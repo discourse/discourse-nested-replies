@@ -47,6 +47,17 @@ export default class NestedRoute extends Route {
     controller.setProperties(model);
     controller.subscribe();
 
+    // Hydrate the topic controller so core components that do
+    // lookup("controller:topic") (e.g. share modal) find valid state.
+    this.controllerFor("topic").set("model", model.topic);
+
+    // Store the OP in the postStream so core components that call
+    // postStream.findLoadedPost() (e.g. share modal's "reply as new topic")
+    // find a valid post instead of undefined.
+    if (model.opPost && model.topic.postStream) {
+      model.topic.postStream.storePost(model.opPost);
+    }
+
     controller.postScreenTracker = new PostScreenTracker(this.screenTrack, {
       headerOffset: this.header.headerOffset,
     });

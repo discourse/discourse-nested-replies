@@ -1,18 +1,12 @@
-import { cached, tracked } from "@glimmer/tracking";
+import { tracked } from "@glimmer/tracking";
 import Controller from "@ember/controller";
 import { action } from "@ember/object";
-import { dependentKeyCompat } from "@ember/object/compat";
+import { getOwner } from "@ember/owner";
 import { service } from "@ember/service";
-import BufferedProxy from "ember-buffered-proxy/proxy";
-import FlagModal from "discourse/components/modal/flag";
-import HistoryModal from "discourse/components/modal/history";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
-import PostFlag from "discourse/lib/flag-targets/post-flag";
-import Category from "discourse/models/category";
 import Composer from "discourse/models/composer";
-import Topic from "discourse/models/topic";
 import { i18n } from "discourse-i18n";
 import processNode from "../lib/process-node";
 
@@ -23,7 +17,6 @@ export default class NestedController extends Controller {
   @service dialog;
   @service currentUser;
   @service messageBus;
-  @service modal;
   @service router;
   @service siteSettings;
 
@@ -41,8 +34,8 @@ export default class NestedController extends Controller {
   @tracked targetPostNumber = null;
   @tracked contextNoAncestors = false;
   @tracked newRootPostIds = [];
-  @tracked editingTopic = false;
   @tracked postScreenTracker = null;
+  @tracked editingTopic = false;
   @tracked pinnedPostNumber = null;
   queryParams = ["sort", "post_number", "context"];
 
@@ -52,28 +45,31 @@ export default class NestedController extends Controller {
   postRegistry = new Map();
   _postEventsSubscribed = false;
 
-  @cached
-  @dependentKeyCompat
+  // The topic controller/route are hydrated in setupController so we can
+  // delegate shared actions and read shared state instead of duplicating
+  // core logic.
+  get _topicController() {
+    return getOwner(this).lookup("controller:topic");
+  }
+
+  get _topicRoute() {
+    return getOwner(this).lookup("route:topic");
+  }
+
   get buffered() {
-    return BufferedProxy.create({ content: this.topic });
+    return this._topicController.buffered;
   }
 
   get showCategoryChooser() {
-    return !this.topic?.isPrivateMessage;
+    return this._topicController.showCategoryChooser;
   }
 
   get canEditTags() {
-    return (
-      this.site.get("can_tag_topics") &&
-      (!this.topic?.isPrivateMessage || this.site.get("can_tag_pms"))
-    );
+    return this._topicController.canEditTags;
   }
 
   get minimumRequiredTags() {
-    return (
-      Category.findById(this.buffered.get("category_id"))
-        ?.minimumRequiredTags || 0
-    );
+    return this._topicController.minimumRequiredTags;
   }
 
   @action
@@ -163,19 +159,7 @@ export default class NestedController extends Controller {
 
   @action
   editPost(post) {
-    if (!this.currentUser) {
-      return this.dialog.alert(i18n("post.controls.edit_anonymous"));
-    }
-    if (!post.can_edit) {
-      return;
-    }
-
-    this.composer.open({
-      post,
-      action: Composer.EDIT,
-      draftKey: this.topic.draft_key,
-      draftSequence: this.topic.draft_sequence || 0,
-    });
+    this._topicController.editPost(post);
   }
 
   @action
@@ -194,7 +178,7 @@ export default class NestedController extends Controller {
 
   @action
   recoverPost(post) {
-    post.recover();
+    this._topicController.recoverPost(post);
   }
 
   @action
@@ -232,27 +216,18 @@ export default class NestedController extends Controller {
 
   @action
   showHistory(post) {
-    this.modal.show(HistoryModal, {
-      model: {
-        postId: post.id,
-        postVersion: "latest",
-        post,
-        editPost: (p) => this.editPost(p),
-      },
-    });
+    this._topicRoute.showHistory(post);
   }
 
   @action
   showFlags(post) {
-    this.modal.show(FlagModal, {
-      model: {
-        flagTarget: new PostFlag(),
-        flagModel: post,
-        setHidden: () => post.set("hidden", true),
-      },
-    });
+    this._topicRoute.showFlags(post);
   }
 
+  // editingTopic is @tracked locally because the topic controller's
+  // editingTopic is a classic property (not @tracked) — a plain getter
+  // aliasing it won't trigger Glimmer re-renders. We sync the flag to
+  // the topic controller so its finishedEditingTopic save logic works.
   @action
   startEditingTopic(event) {
     event?.preventDefault();
@@ -260,37 +235,29 @@ export default class NestedController extends Controller {
       return;
     }
     this.editingTopic = true;
+    this._topicController.set("editingTopic", true);
   }
 
   @action
   cancelEditingTopic() {
+    this._topicController.cancelEditingTopic();
     this.editingTopic = false;
-    this.buffered.discardChanges();
   }
 
   @action
-  async finishedEditingTopic() {
-    if (!this.editingTopic) {
-      return;
-    }
-    const props = this.buffered.get("buffer");
-    try {
-      await Topic.update(this.topic, props, { fastEdit: true });
-      this.buffered.discardChanges();
-      this.editingTopic = false;
-    } catch (error) {
-      popupAjaxError(error);
-    }
+  finishedEditingTopic() {
+    this._topicController.finishedEditingTopic();
+    this.editingTopic = false;
   }
 
   @action
   topicCategoryChanged(categoryId) {
-    this.buffered.set("category_id", categoryId);
+    this._topicController.topicCategoryChanged(categoryId);
   }
 
   @action
   topicTagsChanged(value) {
-    this.buffered.set("tags", value);
+    this._topicController.topicTagsChanged(value);
   }
 
   subscribe() {

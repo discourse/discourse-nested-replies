@@ -133,6 +133,14 @@ module PageObjects
         has_css?(".nested-view__op")
       end
 
+      def has_topic_title_editor?
+        has_css?(".edit-topic-title")
+      end
+
+      def has_no_topic_title_editor?
+        has_no_css?(".edit-topic-title")
+      end
+
       def has_topic_map?
         has_css?(".nested-view__topic-map .topic-map__contents")
       end
@@ -142,6 +150,34 @@ module PageObjects
       end
 
       # ── Actions ───────────────────────────────────────────────────
+
+      def click_edit_topic
+        find(".nested-view__title .fancy-title").click
+        self
+      end
+
+      def click_cancel_edit_topic
+        find(".edit-topic-title .cancel-edit").click
+        self
+      end
+
+      def click_save_edit_topic
+        find(".edit-topic-title .submit-edit").click
+        self
+      end
+
+      def fill_in_topic_title(title)
+        find(".edit-topic-title input#edit-title").fill_in(with: title)
+        self
+      end
+
+      def click_post_edit_button(post)
+        within("[data-post-number='#{post.post_number}']") do
+          find(".show-more-actions").click if has_css?(".show-more-actions", wait: 2)
+          find("button.edit").click
+        end
+        self
+      end
 
       def click_reply_on_post(post)
         find("[data-post-number='#{post.post_number}'] .post-action-menu__reply").click
