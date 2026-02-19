@@ -37,7 +37,9 @@ module ::DiscourseNestedReplies
           {}
         end
 
-      # Run plugin preload hooks (our own direct_reply_counts hook, etc.)
+      # Skip the nested-replies on_preload hook — the nested controller
+      # runs its own direct_reply_counts query, so the hook is redundant here.
+      @topic_view.nested_replies_skip_preload = true
       TopicView.preload(@topic_view)
 
       # Preload associations that plugins access during serialization

@@ -164,11 +164,6 @@
     margin-bottom: 1em;
   }
 
-  &__load-more {
-    display: flex;
-    justify-content: center;
-    margin-top: 1em;
-  }
 }
 
 // ── Sort selector ──────────────────────────────────────────────────
@@ -548,12 +543,6 @@
       width: 14px;
       height: 14px;
     }
-  }
-
-  &__expand-btn {
-    color: var(--tertiary);
-    font-size: var(--font-down-1);
-    padding: 0.25em 0.5em;
   }
 
   &__continue-link {

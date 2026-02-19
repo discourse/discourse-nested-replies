@@ -313,6 +313,15 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(response.status).to eq(404)
       end
 
+      it "returns 400 when pinning a non-root post" do
+        child_post =
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: root_post.post_number)
+
+        sign_in(admin)
+        put pin_url(topic), params: { post_number: child_post.post_number }
+        expect(response.status).to eq(400)
+      end
+
       it "persists the pin so that roots returns it first" do
         high_post =
           Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 10)
@@ -327,6 +336,18 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
         expect(root_ids.first).to eq(root_post.id)
         expect(json["pinned_post_number"]).to eq(root_post.post_number)
       end
+    end
+
+    it "skips the on_preload reply-count query for nested endpoints" do
+      root_post = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+      Fabricate(:post, topic: topic, user: user, reply_to_post_number: root_post.post_number)
+
+      topic_view = TopicView.new(topic.id, user, skip_custom_fields: true, skip_post_loading: true)
+      topic_view.posts = [root_post]
+      topic_view.nested_replies_skip_preload = true
+      TopicView.preload(topic_view)
+
+      expect(topic_view.nested_replies_direct_reply_counts).to be_nil
     end
   end
 
@@ -380,6 +401,31 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       child_json = json["children"].find { |c| c["id"] == grandchild.id }
       expect(child_json).to be_present
       expect(child_json["children"]).to eq([])
+    end
+
+    it "paginates flattened descendants inside the CTE" do
+      SiteSetting.nested_replies_cap_nesting_depth = true
+      SiteSetting.nested_replies_max_depth = 2
+      child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+      grandchildren =
+        3.times.map do
+          Fabricate(:post, topic: topic, user: user, reply_to_post_number: child.post_number)
+        end
+      sign_in(user)
+
+      stub_const(DiscourseNestedReplies::TreeLoader, :CHILDREN_PER_PAGE, 2) do
+        get children_url(topic, child.post_number, depth: 2, page: 0)
+        page0 = response.parsed_body
+        expect(page0["children"].length).to eq(2)
+        expect(page0["has_more"]).to eq(true)
+
+        get children_url(topic, child.post_number, depth: 2, page: 1)
+        page1 = response.parsed_body
+        expect(page1["children"].length).to eq(1)
+
+        all_ids = page0["children"].map { |c| c["id"] } + page1["children"].map { |c| c["id"] }
+        expect(all_ids).to match_array(grandchildren.map(&:id))
+      end
     end
 
     describe "deleted post placeholders" do

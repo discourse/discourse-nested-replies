@@ -121,7 +121,6 @@ RSpec.describe "Nested view depth and nesting", type: :system do
 
       nested_view.visit_nested(topic)
 
-      expect(nested_view).to have_no_expand_button_for(chain.last)
       expect(nested_view).to have_no_continue_thread_for(chain.last)
     end
 

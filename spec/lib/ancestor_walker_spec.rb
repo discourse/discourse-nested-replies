@@ -119,9 +119,10 @@ RSpec.describe DiscourseNestedReplies do
           topic_id: topic.id,
           start_post_number: chain[3].reply_to_post_number,
         )
-      depths = results.sort_by(&:depth).map(&:depth)
-      expect(depths).to eq(depths.sort)
-      expect(depths.first).to eq(1)
+      expect(results.length).to eq(2)
+      result_by_depth = results.index_by(&:depth)
+      expect(result_by_depth[1].post_number).to eq(chain[2].post_number)
+      expect(result_by_depth[2].post_number).to eq(chain[1].post_number)
     end
   end
 end

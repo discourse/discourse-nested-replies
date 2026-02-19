@@ -33,12 +33,19 @@ after_initialize do
     @nested_replies_direct_reply_counts = counts
   end
 
+  add_to_class(:topic_view, :nested_replies_skip_preload) { @nested_replies_skip_preload }
+
+  add_to_class(:topic_view, :nested_replies_skip_preload=) do |val|
+    @nested_replies_skip_preload = val
+  end
+
   # --- TopicView.on_preload: make the flat view nested-aware ---
   # After TopicView loads posts for the flat view, batch-load direct reply
   # counts so the flat topic JSON response includes reply count metadata.
   # This powers the "View as nested (N replies)" toggle link.
   TopicView.on_preload do |topic_view|
     next unless SiteSetting.nested_replies_enabled
+    next if topic_view.nested_replies_skip_preload
 
     post_numbers = topic_view.posts.map(&:post_number)
     next if post_numbers.empty?

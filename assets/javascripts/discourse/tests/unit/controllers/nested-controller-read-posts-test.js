@@ -30,7 +30,7 @@ module("Unit | Controller | nested – readPosts with postRegistry", function ()
     };
   }
 
-  test("marks depth-1 post as read", function (assert) {
+  test("marks a post as read", function (assert) {
     const registry = new Map();
     const post = makePost(2);
     registry.set(2, post);
@@ -41,51 +41,7 @@ module("Unit | Controller | nested – readPosts with postRegistry", function ()
     assert.true(post.read);
   });
 
-  test("marks depth-2 post as read", function (assert) {
-    const registry = new Map();
-    const post = makePost(3);
-    registry.set(3, post);
-    const readPosts = buildReadPosts(42, registry);
-
-    readPosts(42, [3]);
-
-    assert.true(post.read);
-  });
-
-  test("marks depth-3 post as read", function (assert) {
-    const registry = new Map();
-    const post = makePost(4);
-    registry.set(4, post);
-    const readPosts = buildReadPosts(42, registry);
-
-    readPosts(42, [4]);
-
-    assert.true(post.read);
-  });
-
-  test("marks depth-4 post as read", function (assert) {
-    const registry = new Map();
-    const post = makePost(5);
-    registry.set(5, post);
-    const readPosts = buildReadPosts(42, registry);
-
-    readPosts(42, [5]);
-
-    assert.true(post.read);
-  });
-
-  test("marks depth-5 post as read", function (assert) {
-    const registry = new Map();
-    const post = makePost(6);
-    registry.set(6, post);
-    const readPosts = buildReadPosts(42, registry);
-
-    readPosts(42, [6]);
-
-    assert.true(post.read);
-  });
-
-  test("marks posts at all depths 1-5 as read in a single call", function (assert) {
+  test("marks multiple posts as read in a single call", function (assert) {
     const registry = new Map();
     const posts = [
       makePost(2),
@@ -150,14 +106,4 @@ module("Unit | Controller | nested – readPosts with postRegistry", function ()
     assert.false(post.read);
   });
 
-  test("OP post in registry is marked read", function (assert) {
-    const registry = new Map();
-    const opPost = makePost(1);
-    registry.set(1, opPost);
-    const readPosts = buildReadPosts(42, registry);
-
-    readPosts(42, [1]);
-
-    assert.true(opPost.read);
-  });
 });

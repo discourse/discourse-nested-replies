@@ -90,24 +90,30 @@ module ::DiscourseNestedReplies
 
       flatten = SiteSetting.nested_replies_cap_nesting_depth && depth >= loader.configured_max_depth
 
+      per_page = TreeLoader::CHILDREN_PER_PAGE
+
       children_scope =
         if flatten
-          loader.flat_descendants_scope(parent_post_number)
+          # Sorting, visibility filtering, and pagination are applied inside
+          # the CTE query so we avoid materializing all descendants in Ruby.
+          loader.flat_descendants_scope(
+            parent_post_number,
+            offset: page * per_page,
+            limit: per_page,
+          )
         else
-          @topic.posts.where(reply_to_post_number: parent_post_number).where(post_number: 2..)
+          scope =
+            @topic.posts.where(reply_to_post_number: parent_post_number).where(post_number: 2..)
+          scope = loader.apply_visibility(scope)
+          scope =
+            if depth >= loader.configured_max_depth
+              DiscourseNestedReplies::Sort.apply(scope, "old", last_level: true)
+            else
+              DiscourseNestedReplies::Sort.apply(scope, sort)
+            end
+          scope.offset(page * per_page).limit(per_page)
         end
-      children_scope = loader.apply_visibility(children_scope)
 
-      if depth >= loader.configured_max_depth
-        children_scope = DiscourseNestedReplies::Sort.apply(children_scope, "old", last_level: true)
-      else
-        children_scope = DiscourseNestedReplies::Sort.apply(children_scope, sort)
-      end
-
-      children_scope =
-        children_scope.offset(page * TreeLoader::CHILDREN_PER_PAGE).limit(
-          TreeLoader::CHILDREN_PER_PAGE,
-        )
       children_posts = loader.load_posts_for_tree(children_scope).to_a
 
       if flatten
@@ -228,6 +234,9 @@ module ::DiscourseNestedReplies
       if post_number
         post = @topic.posts.where(post_number: post_number).first
         raise Discourse::NotFound unless post
+        if post.reply_to_post_number.present? && post.reply_to_post_number != 1
+          raise Discourse::InvalidParameters.new(:post_number)
+        end
       end
 
       @topic.custom_fields[DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD] = post_number
@@ -247,8 +256,6 @@ module ::DiscourseNestedReplies
       @topic_view =
         TopicView.new(topic_id, current_user, skip_custom_fields: true, skip_post_loading: true)
       @topic = @topic_view.topic
-    rescue Discourse::InvalidAccess, Discourse::NotFound => e
-      raise e
     end
 
     def validated_sort

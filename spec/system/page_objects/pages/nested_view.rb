@@ -75,14 +75,6 @@ module PageObjects
         within(post_container(post)) { has_no_css?(".nested-post__continue-link") }
       end
 
-      def has_expand_button_for?(post)
-        within(post_container(post)) { has_css?(".nested-post__expand-btn") }
-      end
-
-      def has_no_expand_button_for?(post)
-        within(post_container(post)) { has_no_css?(".nested-post__expand-btn") }
-      end
-
       def has_highlighted_post?(post)
         has_css?(".nested-post--highlighted [data-post-number='#{post.post_number}']", wait: 5)
       end
@@ -191,11 +183,6 @@ module PageObjects
 
       def click_continue_thread(post)
         within(post_container(post)) { find(".nested-post__continue-link").click }
-        self
-      end
-
-      def click_expand(post)
-        within(post_container(post)) { find(".nested-post__expand-btn").click }
         self
       end
 

@@ -150,9 +150,12 @@ module ::DiscourseNestedReplies
     # Recursive CTE: collects ALL descendants of a parent post (children,
     # grandchildren, etc.) and returns them as a flat scope. Used when
     # cap_nesting_depth is ON to flatten deep legacy threads at the last level.
-    def flat_descendants_scope(parent_post_number)
+    def flat_descendants_scope(parent_post_number, offset: 0, limit: CHILDREN_PER_PAGE)
+      post_types = [Post.types[:regular], Post.types[:moderator_action]]
+
       descendant_post_numbers =
-        DB.query_single(<<~SQL, topic_id: topic.id, parent_number: parent_post_number)
+        DB.query_single(
+          <<~SQL,
           WITH RECURSIVE descendants AS (
             SELECT post_number
             FROM posts
@@ -166,8 +169,20 @@ module ::DiscourseNestedReplies
             WHERE p.topic_id = :topic_id
               AND p.post_number > 1
           )
-          SELECT post_number FROM descendants
+          SELECT d.post_number
+          FROM descendants d
+          JOIN posts p ON p.post_number = d.post_number AND p.topic_id = :topic_id
+          WHERE p.post_type IN (:post_types)
+          ORDER BY p.created_at ASC
+          OFFSET :offset
+          LIMIT :limit
         SQL
+          topic_id: topic.id,
+          parent_number: parent_post_number,
+          post_types: post_types,
+          offset: offset,
+          limit: limit,
+        )
 
       topic.posts.with_deleted.where(post_number: descendant_post_numbers).where(post_number: 2..)
     end
