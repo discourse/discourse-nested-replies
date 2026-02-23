@@ -1,1 +1,7 @@
 en:
+  site_settings:
+    nested_replies_enabled: "Enable the nested replies view for topics."
+    nested_replies_default: "Use nested replies as the default view for all topics."
+    nested_replies_default_sort: "Default sort algorithm for nested replies view."
+    nested_replies_max_depth: "Maximum visual nesting depth for threaded replies. Posts deeper than this show a 'Continue this thread' link."
+    nested_replies_cap_nesting_depth: "Cap reply nesting at the maximum visual depth. When enabled, replies to the deepest level are re-parented as siblings instead of children."

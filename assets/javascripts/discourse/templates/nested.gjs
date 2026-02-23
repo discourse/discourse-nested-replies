@@ -1,0 +1,67 @@
+import NestedContextView from "discourse/plugins/discourse-nested-replies/discourse/components/nested-context-view";
+import NestedView from "discourse/plugins/discourse-nested-replies/discourse/components/nested-view";
+
+export default <template>
+  {{#if @controller.contextMode}}
+    <NestedContextView
+      @topic={{@controller.topic}}
+      @opPost={{@controller.opPost}}
+      @contextChain={{@controller.contextChain}}
+      @targetPostNumber={{@controller.targetPostNumber}}
+      @contextNoAncestors={{@controller.contextNoAncestors}}
+      @sort={{@controller.sort}}
+      @changeSort={{@controller.changeSort}}
+      @viewFullThread={{@controller.viewFullThread}}
+      @viewParentContext={{@controller.viewParentContext}}
+      @replyToPost={{@controller.replyToPost}}
+      @editPost={{@controller.editPost}}
+      @deletePost={{@controller.deletePost}}
+      @recoverPost={{@controller.recoverPost}}
+      @showFlags={{@controller.showFlags}}
+      @showHistory={{@controller.showHistory}}
+      @editingTopic={{@controller.editingTopic}}
+      @startEditingTopic={{@controller.startEditingTopic}}
+      @cancelEditingTopic={{@controller.cancelEditingTopic}}
+      @finishedEditingTopic={{@controller.finishedEditingTopic}}
+      @showCategoryChooser={{@controller.showCategoryChooser}}
+      @canEditTags={{@controller.canEditTags}}
+      @buffered={{@controller.buffered}}
+      @topicCategoryChanged={{@controller.topicCategoryChanged}}
+      @topicTagsChanged={{@controller.topicTagsChanged}}
+      @minimumRequiredTags={{@controller.minimumRequiredTags}}
+      @postScreenTracker={{@controller.postScreenTracker}}
+    />
+  {{else}}
+    <NestedView
+      @topic={{@controller.topic}}
+      @opPost={{@controller.opPost}}
+      @rootNodes={{@controller.rootNodes}}
+      @hasMoreRoots={{@controller.hasMoreRoots}}
+      @loadingMore={{@controller.loadingMore}}
+      @loadMoreRoots={{@controller.loadMoreRoots}}
+      @sort={{@controller.sort}}
+      @changeSort={{@controller.changeSort}}
+      @replyToPost={{@controller.replyToPost}}
+      @editPost={{@controller.editPost}}
+      @deletePost={{@controller.deletePost}}
+      @recoverPost={{@controller.recoverPost}}
+      @showFlags={{@controller.showFlags}}
+      @showHistory={{@controller.showHistory}}
+      @postNumber={{@controller.postNumber}}
+      @pinnedPostNumber={{@controller.pinnedPostNumber}}
+      @newRootPostCount={{@controller.newRootPostIds.length}}
+      @loadNewRoots={{@controller.loadNewRoots}}
+      @editingTopic={{@controller.editingTopic}}
+      @startEditingTopic={{@controller.startEditingTopic}}
+      @cancelEditingTopic={{@controller.cancelEditingTopic}}
+      @finishedEditingTopic={{@controller.finishedEditingTopic}}
+      @showCategoryChooser={{@controller.showCategoryChooser}}
+      @canEditTags={{@controller.canEditTags}}
+      @buffered={{@controller.buffered}}
+      @topicCategoryChanged={{@controller.topicCategoryChanged}}
+      @topicTagsChanged={{@controller.topicTagsChanged}}
+      @minimumRequiredTags={{@controller.minimumRequiredTags}}
+      @postScreenTracker={{@controller.postScreenTracker}}
+    />
+  {{/if}}
+</template>

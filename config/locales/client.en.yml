@@ -3,7 +3,40 @@ en:
     admin:
       site_settings:
         categories:
-          TODO_plugin_name: "Plugin Name"
+          discourse_nested_replies: "Nested Replies"
   js:
-    discourse_plugin_name:
-      placeholder: placeholder
+    discourse_nested_replies:
+      nested_view: "Nested View"
+      flat_view: "Flat View"
+      view_as_nested: "View as nested"
+      view_as_flat: "View as flat"
+      sort:
+        label: "Sort by"
+        top: "Top"
+        new: "New"
+        old: "Old"
+      load_more_children:
+        one: "%{count} more reply"
+        other: "%{count} more replies"
+      load_more_children_generic: "More replies"
+      continue_thread: "Continue this thread"
+      new_replies:
+        one: "%{count} new reply"
+        other: "%{count} new replies"
+      collapsed_replies:
+        one: "%{count} reply"
+        other: "%{count} replies"
+      collapse: "Collapse"
+      collapse_parent: "Collapse parent thread"
+      no_replies: "No replies yet."
+      deleted_post_placeholder: "[deleted]"
+      op_badge: "OP"
+      pinned_reply: "Pinned"
+      pin_reply: "Pin to top"
+      unpin_reply: "Unpin"
+      context:
+        view_full_thread: "View full thread"
+        view_parent_context: "View parent context"
+        other_replies:
+          one: "%{count} other reply"
+          other: "%{count} other replies"

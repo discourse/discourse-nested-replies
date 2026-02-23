@@ -1,4 +1,24 @@
-TODO_plugin_name:
-  plugin_name_enabled:
+discourse_nested_replies:
+  nested_replies_enabled:
+    default: false
+    client: true
+  nested_replies_default:
+    default: false
+    client: true
+  nested_replies_default_sort:
+    default: "top"
+    client: true
+    type: enum
+    choices:
+      - top
+      - new
+      - old
+  nested_replies_max_depth:
+    default: 10
+    client: true
+    type: integer
+    min: 1
+    max: 10
+  nested_replies_cap_nesting_depth:
     default: false
     client: true
