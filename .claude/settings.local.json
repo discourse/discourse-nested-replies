@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /Users/markvanlan/ws/discourse && bin/rspec plugins/discourse-nested-replies/spec/system/nested_category_default_spec.rb:28 2>&1 | grep -A 20 \"Failure/Error\")"
+    ]
+  }
+}

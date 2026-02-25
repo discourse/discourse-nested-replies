@@ -1,3 +1,4 @@
+import { ajax } from "discourse/lib/ajax";
 import { apiInitializer } from "discourse/lib/api";
 import Category from "discourse/models/category";
 
@@ -70,6 +71,15 @@ export default apiInitializer((api) => {
       return null;
     }
 
+    // If already in flat view, don't redirect to nested (e.g. timeline navigation).
+    const currentRoute = router.currentRouteName;
+    if (
+      currentRoute === "topic.fromParams" ||
+      currentRoute === "topic.fromParamsNear"
+    ) {
+      return path;
+    }
+
     const match = TOPIC_URL_RE.exec(path);
     if (!match) {
       return path;
@@ -105,13 +115,22 @@ export default apiInitializer((api) => {
   // Fallback: if a topic URL wasn't intercepted by the route-to-url
   // transformer (e.g. direct URL entry where the topic isn't in tracking
   // state yet), intercept before the topic route's model hook runs.
+  // When the topic isn't in tracking state, abort and fetch topic info
+  // to determine the category before deciding which view to load.
+  const checkedTopicIds = new Set();
+
   router.on("routeWillChange", (transition) => {
     const toName = transition.to?.name;
     if (toName !== "topic.fromParams" && toName !== "topic.fromParamsNear") {
       return;
     }
 
-    if (router.currentRouteName?.startsWith("nested")) {
+    const currentRoute = router.currentRouteName;
+    if (
+      currentRoute === "nested" ||
+      currentRoute === "topic.fromParams" ||
+      currentRoute === "topic.fromParamsNear"
+    ) {
       return;
     }
 
@@ -123,24 +142,53 @@ export default apiInitializer((api) => {
     const topicId = parseInt(topicParams.id, 10);
     const slug = topicParams.slug;
 
-    let categoryId;
-    const tracked = topicTrackingState.findState(topicId);
-    if (tracked) {
-      categoryId = tracked.category_id;
-    }
-
-    if (!isNestedDefault(siteSettings, categoryId)) {
+    // Respect explicit ?flat param
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has("flat")) {
       return;
     }
 
-    transition.abort();
+    const tracked = topicTrackingState.findState(topicId);
+    if (tracked) {
+      if (!isNestedDefault(siteSettings, tracked.category_id)) {
+        return;
+      }
 
-    const nearPost = transition.to?.params?.nearPost;
-    const queryParams = {};
-    if (nearPost) {
-      queryParams.post_number = nearPost;
+      transition.abort();
+      const nearPost = transition.to?.params?.nearPost;
+      const queryParams = {};
+      if (nearPost) {
+        queryParams.post_number = nearPost;
+      }
+      router.transitionTo("nested", slug, topicId, { queryParams });
+      return;
     }
 
-    router.transitionTo("nested", slug, topicId, { queryParams });
+    // Topic not in tracking state (e.g. direct URL entry). Abort, look
+    // up the category via a lightweight request, then redirect or resume.
+    if (checkedTopicIds.has(topicId)) {
+      return;
+    }
+    checkedTopicIds.add(topicId);
+
+    transition.abort();
+
+    ajax(`/t/${topicId}.json`, { data: { track_visit: false } })
+      .then((data) => {
+        if (isNestedDefault(siteSettings, data.category_id)) {
+          const queryParams = {};
+          const nearPost = transition.to?.params?.nearPost;
+          if (nearPost) {
+            queryParams.post_number = nearPost;
+          }
+          router.transitionTo("nested", slug, topicId, { queryParams });
+        } else {
+          router.transitionTo("topic.fromParams", slug, topicId);
+        }
+      })
+      .catch(() => {
+        // On error, let the normal topic route handle it
+        router.transitionTo("topic.fromParams", slug, topicId);
+      });
   });
 });
