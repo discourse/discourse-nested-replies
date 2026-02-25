@@ -50,6 +50,14 @@ export default apiInitializer((api) => {
   api.registerValueTransformer(
     "topic-url-for-post-number",
     ({ value, context }) => {
+      const currentRoute = router.currentRouteName;
+      if (
+        currentRoute === "topic.fromParams" ||
+        currentRoute === "topic.fromParamsNear"
+      ) {
+        return value;
+      }
+
       const { topic } = context;
       if (isNestedDefault(siteSettings, topic.category_id)) {
         const slug = topic.slug || "topic";

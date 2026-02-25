@@ -93,10 +93,17 @@ RSpec.describe "Nested view category default", type: :system do
       page.visit("/t/#{topic.slug}/#{topic.id}?flat=1")
       expect(nested_view).to have_no_nested_view
 
-      # Simulate timeline navigation: routeTo called from within flat topic view
-      page.execute_script(
-        "require('discourse/lib/url').default.routeTo('/t/#{topic.slug}/#{topic.id}/#{reply.post_number}')",
-      )
+      # Simulate the exact code path the topic timeline uses:
+      # topic.urlForPostNumber() → DiscourseURL.routeTo()
+      # This exercises the topic-url-for-post-number transformer which rewrites
+      # URLs to /nested/ for nested-default categories.
+      page.execute_script(<<~JS)
+        (function() {
+          var topic = Discourse.lookup("controller:topic").model;
+          var url = topic.urlForPostNumber(#{reply.post_number});
+          require("discourse/lib/url").default.routeTo(url);
+        })();
+      JS
 
       expect(page).to have_current_path(%r{/t/#{topic.slug}/#{topic.id}})
       expect(nested_view).to have_no_nested_view
