@@ -28,6 +28,8 @@ en:
         other: "%{count} replies"
       collapse: "Collapse"
       collapse_parent: "Collapse parent thread"
+      category_settings:
+        default_nested_view: "Use nested view as default for topics in this category"
       no_replies: "No replies yet."
       deleted_post_placeholder: "[deleted]"
       op_badge: "OP"

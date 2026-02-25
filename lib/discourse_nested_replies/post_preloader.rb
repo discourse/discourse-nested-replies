@@ -18,7 +18,7 @@ module ::DiscourseNestedReplies
 
       # Wrap posts so on_preload hooks that call .includes() or .pluck()
       # on topic_view.posts work transparently with our loaded array.
-      @topic_view.posts = PostsArray.new(posts)
+      @topic_view.reset_post_collection(posts: PostsArray.new(posts))
 
       # Load custom fields
       allowed_post_fields = TopicView.allowed_post_custom_fields(@current_user, @topic)
@@ -37,9 +37,7 @@ module ::DiscourseNestedReplies
           {}
         end
 
-      # Skip the nested-replies on_preload hook — the nested controller
-      # runs its own direct_reply_counts query, so the hook is redundant here.
-      @topic_view.nested_replies_skip_preload = true
+      # Run plugin preload hooks (our own direct_reply_counts hook, etc.)
       TopicView.preload(@topic_view)
 
       # Preload associations that plugins access during serialization
