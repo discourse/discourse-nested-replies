@@ -141,6 +141,14 @@ module PageObjects
         has_no_css?(".nested-view__topic-map .top-replies")
       end
 
+      def has_floating_reply_button?
+        has_css?(".nested-view__floating-reply")
+      end
+
+      def has_no_floating_reply_button?
+        has_no_css?(".nested-view__floating-reply")
+      end
+
       # ── Actions ───────────────────────────────────────────────────
 
       def click_edit_topic
@@ -205,6 +213,11 @@ module PageObjects
 
       def click_view_parent_context
         find(".nested-context-view__parent-context").click
+        self
+      end
+
+      def click_floating_reply_button
+        find(".nested-view__floating-reply").click
         self
       end
 
