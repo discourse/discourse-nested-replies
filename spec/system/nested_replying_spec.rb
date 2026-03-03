@@ -75,6 +75,19 @@ RSpec.describe "Nested view replying", type: :system do
       expect(nested_view).to have_nested_view
       expect(page).to have_current_path(%r{/nested/})
     end
+
+    it "hides when the composer is open and reappears when closed" do
+      nested_view.visit_nested(topic)
+      expect(nested_view).to have_floating_reply_button
+
+      nested_view.click_floating_reply_button
+      expect(composer).to be_opened
+      expect(nested_view).to have_no_floating_reply_button
+
+      composer.close
+      expect(composer).to be_closed
+      expect(nested_view).to have_floating_reply_button
+    end
   end
 
   describe "replying to a collapsed post" do
