@@ -172,6 +172,15 @@
     box-shadow: var(--shadow-dropdown);
     border-radius: 2em;
     padding: 0.65em 1.25em;
+    transition:
+      transform 0.3s ease,
+      opacity 0.3s ease;
+
+    &.--hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(2em);
+    }
   }
 
   &--ama {

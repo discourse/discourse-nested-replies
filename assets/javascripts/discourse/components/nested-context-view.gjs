@@ -12,6 +12,7 @@ import PostMetaData from "discourse/components/post/meta-data";
 import TopicCategory from "discourse/components/topic-category";
 import TopicCategoryTagEditor from "discourse/components/topic-category-tag-editor";
 import TopicTitleEditor from "discourse/components/topic-title-editor";
+import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
 import { i18n } from "discourse-i18n";
@@ -19,6 +20,7 @@ import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedContextView extends Component {
+  @service composer;
   @service currentUser;
 
   trackOpPost = modifier((element) => {
@@ -172,7 +174,10 @@ export default class NestedContextView extends Component {
 
       {{#if this.canCreatePost}}
         <DButton
-          class="btn-primary nested-view__floating-reply"
+          class={{concatClass
+            "btn-primary nested-view__floating-reply"
+            (if this.composer.visible "--hidden")
+          }}
           @action={{fn @replyToPost @opPost 0}}
           @icon="reply"
           @label="topic.reply.title"

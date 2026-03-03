@@ -142,11 +142,11 @@ module PageObjects
       end
 
       def has_floating_reply_button?
-        has_css?(".nested-view__floating-reply")
+        has_css?(".nested-view__floating-reply:not(.--hidden)")
       end
 
       def has_no_floating_reply_button?
-        has_no_css?(".nested-view__floating-reply")
+        has_no_css?(".nested-view__floating-reply:not(.--hidden)")
       end
 
       # ── Actions ───────────────────────────────────────────────────

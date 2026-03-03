@@ -25,6 +25,7 @@ import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedView extends Component {
+  @service composer;
   @service currentUser;
 
   trackOpPost = modifier((element) => {
@@ -195,7 +196,10 @@ export default class NestedView extends Component {
 
       {{#if this.canCreatePost}}
         <DButton
-          class="btn-primary nested-view__floating-reply"
+          class={{concatClass
+            "btn-primary nested-view__floating-reply"
+            (if this.composer.visible "--hidden")
+          }}
           @action={{fn @replyToPost @opPost 0}}
           @icon="reply"
           @label="topic.reply.title"
