@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { array, fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { schedule } from "@ember/runloop";
+import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
@@ -18,6 +19,8 @@ import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedContextView extends Component {
+  @service currentUser;
+
   trackOpPost = modifier((element) => {
     this.args.postScreenTracker?.observe(element, this.args.opPost);
     return () => this.args.postScreenTracker?.unobserve(element);
@@ -26,6 +29,10 @@ export default class NestedContextView extends Component {
   constructor() {
     super(...arguments);
     schedule("afterRender", this, this._scrollToTarget);
+  }
+
+  get canCreatePost() {
+    return this.currentUser && this.args.topic?.details?.can_create_post;
   }
 
   get flatViewUrl() {
@@ -161,6 +168,16 @@ export default class NestedContextView extends Component {
             />
           {{/each}}
         </div>
+      {{/if}}
+
+      {{#if this.canCreatePost}}
+        <DButton
+          class="btn-primary nested-view__floating-reply"
+          @action={{fn @replyToPost @opPost 0}}
+          @icon="reply"
+          @label="topic.reply.title"
+          title={{i18n "topic.reply.help"}}
+        />
       {{/if}}
     </div>
   </template>

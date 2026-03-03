@@ -51,6 +51,32 @@ RSpec.describe "Nested view replying", type: :system do
     end
   end
 
+  describe "floating reply button" do
+    it "is visible for logged-in users" do
+      nested_view.visit_nested(topic)
+      expect(nested_view).to have_floating_reply_button
+    end
+
+    it "is not visible for anonymous users" do
+      Capybara.reset_sessions!
+      nested_view.visit_nested(topic)
+      expect(nested_view).to have_no_floating_reply_button
+    end
+
+    it "opens the composer for a top-level reply" do
+      nested_view.visit_nested(topic)
+      nested_view.click_floating_reply_button
+      expect(composer).to be_opened
+
+      composer.fill_content("A top-level reply via floating button")
+      composer.submit
+      expect(composer).to be_closed
+
+      expect(nested_view).to have_nested_view
+      expect(page).to have_current_path(%r{/nested/})
+    end
+  end
+
   describe "replying to a collapsed post" do
     fab!(:root_reply) do
       Fabricate(:post, topic: topic, user: Fabricate(:user), raw: "Root reply with children")

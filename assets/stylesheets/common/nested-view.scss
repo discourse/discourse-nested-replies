@@ -164,6 +164,16 @@
     margin-bottom: 1em;
   }
 
+  &__floating-reply {
+    position: fixed;
+    bottom: 2em;
+    right: 2em;
+    z-index: 998;
+    box-shadow: var(--shadow-dropdown);
+    border-radius: 2em;
+    padding: 0.65em 1.25em;
+  }
+
   &--ama {
     .nested-post__op-badge {
       color: var(--success);
@@ -676,6 +686,11 @@
     &__content {
       overflow-x: auto;
     }
+  }
+
+  .nested-view__floating-reply {
+    bottom: 1em;
+    right: 1em;
   }
 
   .nested-sort-selector {

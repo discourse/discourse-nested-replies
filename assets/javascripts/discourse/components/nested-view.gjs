@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
@@ -24,6 +25,8 @@ import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedView extends Component {
+  @service currentUser;
+
   trackOpPost = modifier((element) => {
     this.args.postScreenTracker?.observe(element, this.args.opPost);
     return () => this.args.postScreenTracker?.unobserve(element);
@@ -46,6 +49,10 @@ export default class NestedView extends Component {
 
   get isAma() {
     return this.args.topic?.tags?.some((tag) => tag.name === "ama");
+  }
+
+  get canCreatePost() {
+    return this.currentUser && this.args.topic?.details?.can_create_post;
   }
 
   get flatViewUrl() {
@@ -185,6 +192,16 @@ export default class NestedView extends Component {
         @enabled={{@hasMoreRoots}}
         @isLoading={{@loadingMore}}
       />
+
+      {{#if this.canCreatePost}}
+        <DButton
+          class="btn-primary nested-view__floating-reply"
+          @action={{fn @replyToPost @opPost 0}}
+          @icon="reply"
+          @label="topic.reply.title"
+          title={{i18n "topic.reply.help"}}
+        />
+      {{/if}}
     </div>
   </template>
 
