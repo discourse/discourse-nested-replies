@@ -80,12 +80,6 @@ This is the correct approach — reimplementing them would be worse. Risk is
 mitigated by system specs (see Test Coverage below), `core_features_spec.rb`
 smoke test, and CI against Core HEAD.
 
-### 5. `PostScreenTracker` implicit contract — Low risk
-
-The `screenTrack` service expects the controller to implement `readPosts()`.
-This is the same contract Core's own topic controller uses. Stable, unlikely
-to change.
-
 ---
 
 ## Test Coverage
@@ -126,4 +120,3 @@ Page object in `spec/system/page_objects/pages/nested_view.rb`.
 | discourse-reactions SQL replication | Open | Medium |
 | Hardcoded Ember route names | Open | Low |
 | Core component imports | Acceptable | Low |
-| `PostScreenTracker` contract | Acceptable | Low |

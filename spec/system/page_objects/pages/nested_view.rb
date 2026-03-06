@@ -83,6 +83,28 @@ module PageObjects
         has_css?("[data-post-number='#{post.post_number}'] .post-action-menu__reply")
       end
 
+      def has_replies_toggle_for?(post)
+        has_css?(
+          "[data-post-number='#{post.post_number}'] .post-action-menu__nested-replies-expand",
+        )
+      end
+
+      def has_no_replies_toggle_for?(post)
+        has_no_css?(
+          "[data-post-number='#{post.post_number}'] .post-action-menu__nested-replies-expand",
+        )
+      end
+
+      def has_depth_line_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.find(".nested-post__gutter", match: :first).has_css?(".nested-post__depth-line")
+      end
+
+      def has_no_depth_line_for?(post)
+        wrapper = nested_post_wrapper(post)
+        wrapper.find(".nested-post__gutter", match: :first).has_no_css?(".nested-post__depth-line")
+      end
+
       def has_children_visible_for?(post)
         wrapper = nested_post_wrapper(post)
         wrapper.has_css?(".nested-post-children")
@@ -244,7 +266,10 @@ module PageObjects
       end
 
       def nested_post_wrapper(post)
-        find("[data-post-number='#{post.post_number}']").ancestor(".nested-post", match: :first)
+        find("[data-post-number='#{post.post_number}']").find(
+          :xpath,
+          "ancestor::div[contains(concat(' ', @class, ' '), ' nested-post ')][1]",
+        )
       end
     end
   end

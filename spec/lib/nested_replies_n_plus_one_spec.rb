@@ -22,47 +22,20 @@ RSpec.describe "Nested replies N+1 elimination", type: :request do
 
   before { SiteSetting.nested_replies_enabled = true }
 
-  describe "before_create depth check" do
+  describe "no re-parenting on create" do
     before do
       SiteSetting.nested_replies_cap_nesting_depth = true
-      SiteSetting.nested_replies_max_depth = 10
-    end
-
-    it "uses constant queries regardless of chain depth" do
-      chain_3 = build_chain(depth: 3, topic: topic)
-      queries_3 =
-        track_sql_queries do
-          Fabricate(:post, topic: topic, user: user, reply_to_post_number: chain_3.last.post_number)
-        end
-
-      topic2 = Fabricate(:topic, user: user)
-      Fabricate(:post, topic: topic2, user: user, post_number: 1)
-      chain_10 = build_chain(depth: 10, topic: topic2)
-      queries_10 =
-        track_sql_queries do
-          Fabricate(
-            :post,
-            topic: topic2,
-            user: user,
-            reply_to_post_number: chain_10.last.post_number,
-          )
-        end
-
-      cte_queries_3 = queries_3.count { |q| q.include?("WITH RECURSIVE ancestors") }
-      cte_queries_10 = queries_10.count { |q| q.include?("WITH RECURSIVE ancestors") }
-      expect(cte_queries_3).to eq(cte_queries_10)
-      expect(cte_queries_3).to be <= 2
-    end
-
-    it "still re-parents at max depth" do
       SiteSetting.nested_replies_max_depth = 3
+    end
+
+    it "preserves reply_to_post_number even at max depth" do
       chain = build_chain(depth: 4, topic: topic)
       deep_reply =
         Fabricate(:post, topic: topic, user: user, reply_to_post_number: chain.last.post_number)
-      expect(deep_reply.reply_to_post_number).to eq(chain.last.reply_to_post_number)
+      expect(deep_reply.reply_to_post_number).to eq(chain.last.post_number)
     end
 
-    it "does not re-parent when under max depth" do
+    it "preserves reply_to_post_number under max depth" do
       SiteSetting.nested_replies_max_depth = 10
       chain = build_chain(depth: 3, topic: topic)
       reply =

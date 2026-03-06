@@ -119,36 +119,6 @@ after_initialize do
   end
   reloadable_patch { PostSerializer.prepend(DiscourseNestedReplies::PostSerializerReactionsPatch) }
 
-  # --- Depth cap: re-parent replies at max depth ---
-  # When nested_replies_cap_nesting_depth is enabled and a user replies to a
-  # post that is already at max depth, re-parent the reply to the parent's parent.
-  # This prevents chains from exceeding the configured max depth in the data.
-  add_model_callback(:post, :before_create) do
-    next unless SiteSetting.nested_replies_enabled
-    next unless SiteSetting.nested_replies_cap_nesting_depth
-    next if reply_to_post_number.blank?
-
-    max_depth = SiteSetting.nested_replies_max_depth
-
-    # Walk ancestors (excluding deleted, stopping before OP) to measure chain depth
-    ancestors =
-      DiscourseNestedReplies.walk_ancestors(
-        topic_id: topic_id,
-        start_post_number: reply_to_post_number,
-        limit: max_depth + 2,
-        exclude_deleted: true,
-        stop_at_op: true,
-      )
-    next if ancestors.empty?
-
-    depth = ancestors.map(&:depth).max
-    parent_reply_to = ancestors.find { |a| a.depth == 1 }&.reply_to_post_number
-
-    # Re-parent when the reply would exceed max depth.
-    # depth counts hops (visual_depth + 1), so > means visual_depth >= max_depth.
-    self.reply_to_post_number = parent_reply_to if depth > max_depth && parent_reply_to.present?
-  end
-
   # --- Stats maintenance callbacks ---
   # Keep nested_view_post_stats counts in sync when posts are created or deleted.
   # direct_reply_count: incremented on the immediate parent only.

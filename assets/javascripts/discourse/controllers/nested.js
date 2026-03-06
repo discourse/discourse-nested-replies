@@ -18,7 +18,6 @@ export default class NestedController extends Controller {
   @service currentUser;
   @service messageBus;
   @service router;
-  @service siteSettings;
 
   @tracked topic;
   @tracked opPost;
@@ -123,23 +122,13 @@ export default class NestedController extends Controller {
   }
 
   @action
-  replyToPost(post, depth) {
+  replyToPost(post) {
     const topic = this.topic;
     if (!topic.details?.can_create_post) {
       return;
     }
 
     let replyTarget = post;
-
-    // When nesting is capped and post is at max depth, reply to its parent
-    // so the user sees "Replying to [parent]" matching the backend re-parenting
-    if (
-      this.siteSettings.nested_replies_cap_nesting_depth &&
-      typeof depth === "number" &&
-      depth >= this.siteSettings.nested_replies_max_depth
-    ) {
-      replyTarget = post.reply_to_post || post;
-    }
 
     const opts = {
       action: Composer.REPLY,

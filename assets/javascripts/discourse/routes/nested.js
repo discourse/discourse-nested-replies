@@ -1,7 +1,7 @@
 import Route from "@ember/routing/route";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
-import PostScreenTracker from "discourse/lib/post-screen-tracker";
+import PostScreenTracker from "../lib/post-screen-tracker";
 import processNode from "../lib/process-node";
 
 export default class NestedRoute extends Route {

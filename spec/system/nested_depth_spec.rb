@@ -93,19 +93,19 @@ RSpec.describe "Nested view depth and nesting", type: :system do
       SiteSetting.nested_replies_max_depth = 3
     end
 
-    it "re-parents new replies at max depth to become siblings" do
+    it "preserves reply_to_post_number on save (no re-parenting)" do
       chain = create_reply_chain(depth: 4)
       max_depth_post = chain.last
 
       reply =
         PostCreator.new(
           user,
-          raw: "This should be re-parented",
+          raw: "This should NOT be re-parented",
           topic_id: topic.id,
           reply_to_post_number: max_depth_post.post_number,
         ).create
 
-      expect(reply.reply_to_post_number).to eq(max_depth_post.reply_to_post_number)
+      expect(reply.reply_to_post_number).to eq(max_depth_post.post_number)
     end
 
     it "does not show 'Continue this thread' when cap is on" do
@@ -115,34 +115,44 @@ RSpec.describe "Nested view depth and nesting", type: :system do
 
       chain.each { |post| expect(nested_view).to have_no_continue_thread_for(post) }
     end
+  end
 
-    it "posts at max depth are leaf nodes with no expand controls" do
+  describe "expand button at max depth" do
+    it "does not show the expand button for posts at max depth with replies" do
+      SiteSetting.nested_replies_max_depth = 2
       chain = create_reply_chain(depth: 4)
 
       nested_view.visit_nested(topic)
 
-      expect(nested_view).to have_no_continue_thread_for(chain.last)
+      expect(nested_view).to have_post(chain[2])
+      expect(nested_view).to have_no_replies_toggle_for(chain[2])
     end
+  end
 
-    it "re-parents reply to capped post and shows it at correct depth" do
+  describe "depth line at max depth" do
+    it "hides the depth line at max depth when cap is ON" do
+      SiteSetting.nested_replies_cap_nesting_depth = true
       SiteSetting.nested_replies_max_depth = 2
-      chain = create_reply_chain(depth: 3)
-      capped_post = chain.last
-
-      reply =
-        PostCreator.new(
-          user,
-          raw: "Reply to capped post",
-          topic_id: topic.id,
-          reply_to_post_number: capped_post.post_number,
-        ).create
-
-      expect(reply.reply_to_post_number).to eq(capped_post.reply_to_post_number)
+      chain = create_reply_chain(depth: 4)
 
       nested_view.visit_nested(topic)
 
-      expect(nested_view).to have_post(reply)
-      expect(nested_view).to have_post_at_depth(reply, depth: 2)
+      expect(nested_view).to have_depth_line_for(chain[0])
+      expect(nested_view).to have_depth_line_for(chain[1])
+      expect(nested_view).to have_no_depth_line_for(chain[2])
+    end
+
+    it "shows the depth line at max depth when cap is OFF (continue thread)" do
+      SiteSetting.nested_replies_cap_nesting_depth = false
+      SiteSetting.nested_replies_max_depth = 2
+      chain = create_reply_chain(depth: 4)
+
+      nested_view.visit_nested(topic)
+
+      expect(nested_view).to have_depth_line_for(chain[0])
+      expect(nested_view).to have_depth_line_for(chain[1])
+      expect(nested_view).to have_depth_line_for(chain[2])
+      expect(nested_view).to have_continue_thread_for(chain[2])
     end
   end
 end
