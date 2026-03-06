@@ -112,6 +112,10 @@ export default class NestedPost extends Component {
     );
   }
 
+  get showDepthLine() {
+    return this.hasReplies && (!this.atMaxDepth || this.showContinueThread);
+  }
+
   get isOP() {
     return this.args.post.user_id === this.args.topic?.user_id;
   }
@@ -236,7 +240,7 @@ export default class NestedPost extends Component {
         {{else}}
           <PostAvatar @post={{@post}} @size="small" />
         {{/if}}
-        {{#if (and this.hasReplies (not this.collapsed))}}
+        {{#if (and this.showDepthLine (not this.collapsed))}}
           <button
             type="button"
             class={{concatClass
@@ -331,8 +335,8 @@ export default class NestedPost extends Component {
                 @share={{this.share}}
                 @showFlags={{fn @showFlags @post}}
                 @toggleLike={{this.toggleLike}}
-                @toggleReplies={{this.toggleExpanded}}
-                @repliesShown={{this.expanded}}
+                @toggleReplies={{unless this.atMaxDepth this.toggleExpanded}}
+                @repliesShown={{if this.atMaxDepth true this.expanded}}
                 @showLogin={{this.noop}}
               />
             </section>
