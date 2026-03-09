@@ -91,7 +91,7 @@ These specific plugin API methods should be used throughout the implementation r
 | **PostCookedHtml** | `frontend/discourse/app/components/post/cooked-html.gjs` | Rendered post content |
 | **PostMenu** | `frontend/discourse/app/components/post/menu.gjs` | Action buttons (like, reply, share, flag, bookmark, etc.) |
 | **TopicTitleEditor** | `frontend/discourse/app/components/topic-title-editor.gjs` | Title text field for topic editing |
-| **TopicCategoryTagEditor** | `frontend/discourse/app/components/topic-category-tag-editor.gjs` | Shared category chooser + tag chooser + save/cancel controls for topic editing (used by both core topic view and nested views) |
+| **TopicMetadata** | `frontend/discourse/app/components/topic-metadata.gjs` | Shared category chooser + tag chooser + save/cancel controls for topic editing (used by both core topic view and nested views) |
 | **PostLinks** | `frontend/discourse/app/components/post/links.gjs` | Link display |
 | **DButton** | `frontend/discourse/app/components/d-button.gjs` | Standard button component |
 | **ajax utility** | `frontend/discourse/app/lib/ajax.js` | API calls |
@@ -394,14 +394,14 @@ Loads and caches nested view data. See “Caching & Performance Strategy” sect
 
 **Contains**:
 
-* Topic header (title, category, tags) — editing uses if/else swap: `TopicTitleEditor` + `TopicCategoryTagEditor` (shared core component) replace the display title/category when editing, matching flat view behavior
+* Topic header (title, category, tags) — editing uses if/else swap: `TopicTitleEditor` + `TopicMetadata` (shared core component) replace the display title/category when editing, matching flat view behavior
 * OP post rendered prominently
 * Sort selector (Top/New/Old) aligned left, "View as flat" link aligned right
 * Root posts list → each rendered via `<NestedPost>`
 * Infinite scroll for root pagination via `<LoadMore>`
 * Link to switch back to flat view
 
-**Reuses**: Topic model, TopicTitleEditor, TopicCategoryTagEditor, DButton, ConditionalLoadingSpinner, LoadMore
+**Reuses**: Topic model, TopicTitleEditor, TopicMetadata, DButton, ConditionalLoadingSpinner, LoadMore
 
 #### 7. `<NestedPost>` Component (`components/nested-post.gjs`)
 

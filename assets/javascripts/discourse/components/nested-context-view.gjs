@@ -10,7 +10,7 @@ import PostAvatar from "discourse/components/post/avatar";
 import PostCookedHtml from "discourse/components/post/cooked-html";
 import PostMetaData from "discourse/components/post/meta-data";
 import TopicCategory from "discourse/components/topic-category";
-import TopicCategoryTagEditor from "discourse/components/topic-category-tag-editor";
+import TopicMetadata from "discourse/components/topic-metadata";
 import TopicTitleEditor from "discourse/components/topic-title-editor";
 import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
@@ -91,7 +91,7 @@ export default class NestedContextView extends Component {
               @buffered={{@buffered}}
             />
 
-            <TopicCategoryTagEditor
+            <TopicMetadata
               @buffered={{@buffered}}
               @model={{@topic}}
               @showCategoryChooser={{@showCategoryChooser}}
