@@ -65,7 +65,7 @@ module ::DiscourseNestedReplies
 
         scope = topic.posts.where(reply_to_post_number: parent_numbers).where(post_number: 2..)
         scope = apply_visibility(scope)
-        scope = DiscourseNestedReplies::Sort.apply(scope, sort, last_level: last_level)
+        scope = DiscourseNestedReplies::Sort.apply(scope, sort)
         all_children = load_posts_for_tree(scope).to_a
 
         next_level = []
@@ -150,8 +150,9 @@ module ::DiscourseNestedReplies
     # Recursive CTE: collects ALL descendants of a parent post (children,
     # grandchildren, etc.) and returns them as a flat scope. Used when
     # cap_nesting_depth is ON to flatten deep legacy threads at the last level.
-    def flat_descendants_scope(parent_post_number, offset: 0, limit: CHILDREN_PER_PAGE)
+    def flat_descendants_scope(parent_post_number, sort:, offset: 0, limit: CHILDREN_PER_PAGE)
       post_types = [Post.types[:regular], Post.types[:moderator_action]]
+      order_expr = DiscourseNestedReplies::Sort.sql_order_expression(sort)
 
       descendant_post_numbers =
         DB.query_single(
@@ -173,7 +174,7 @@ module ::DiscourseNestedReplies
           FROM descendants d
           JOIN posts p ON p.post_number = d.post_number AND p.topic_id = :topic_id
           WHERE p.post_type IN (:post_types)
-          ORDER BY p.created_at ASC
+          ORDER BY #{order_expr}
           OFFSET :offset
           LIMIT :limit
         SQL
@@ -184,7 +185,9 @@ module ::DiscourseNestedReplies
           limit: limit,
         )
 
-      topic.posts.with_deleted.where(post_number: descendant_post_numbers).where(post_number: 2..)
+      scope =
+        topic.posts.with_deleted.where(post_number: descendant_post_numbers).where(post_number: 2..)
+      DiscourseNestedReplies::Sort.apply(scope, sort)
     end
 
     def configured_max_depth

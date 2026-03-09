@@ -7,6 +7,7 @@ import processNode from "../lib/process-node";
 export default class NestedRoute extends Route {
   @service header;
   @service screenTrack;
+  @service siteSettings;
   @service store;
 
   queryParams = {
@@ -20,30 +21,25 @@ export default class NestedRoute extends Route {
   }
 
   async model(params) {
-    const { topic_id, slug, sort, post_number } = params;
+    const { topic_id, slug, post_number } = params;
+    const sort =
+      params.sort || this.siteSettings.nested_replies_default_sort || "top";
 
     if (post_number) {
-      const queryParts = [];
-      if (sort) {
-        queryParts.push(`sort=${sort}`);
-      }
+      const queryParts = [`sort=${sort}`];
       if (params.context !== undefined && params.context !== null) {
         queryParts.push(`context=${params.context}`);
       }
-      const contextQuery = queryParts.length ? `?${queryParts.join("&")}` : "";
+      const contextQuery = `?${queryParts.join("&")}`;
       const data = await ajax(
         `/nested/${slug}/${topic_id}/context/${post_number}.json${contextQuery}`
       );
-      return this._processContextResponse(data, params);
+      return this._processContextResponse(data, params, sort);
     }
 
-    const queryParts = [];
-    if (sort) {
-      queryParts.push(`sort=${sort}`);
-    }
-    const query = queryParts.length ? `?${queryParts.join("&")}` : "";
-
-    const data = await ajax(`/nested/${slug}/${topic_id}/roots.json${query}`);
+    const data = await ajax(
+      `/nested/${slug}/${topic_id}/roots.json?sort=${sort}`
+    );
     return this._processResponse(data, params);
   }
 
@@ -97,7 +93,7 @@ export default class NestedRoute extends Route {
       rootNodes,
       page: data.page || 0,
       hasMoreRoots: data.has_more_roots || false,
-      sort: data.sort || "top",
+      sort: data.sort || this.siteSettings.nested_replies_default_sort || "top",
       messageBusLastId: data.message_bus_last_id,
       pinnedPostNumber: data.pinned_post_number || null,
       postNumber: params.post_number ? Number(params.post_number) : null,
@@ -110,7 +106,7 @@ export default class NestedRoute extends Route {
     };
   }
 
-  _processContextResponse(data, params) {
+  _processContextResponse(data, params, sort) {
     const topic = this.store.createRecord("topic", data.topic);
 
     const assignTopic = (postData) => {
@@ -135,7 +131,7 @@ export default class NestedRoute extends Route {
     return {
       topic,
       opPost,
-      sort: params.sort || "top",
+      sort,
       messageBusLastId: data.message_bus_last_id,
       postNumber: Number(params.post_number),
       contextMode: true,

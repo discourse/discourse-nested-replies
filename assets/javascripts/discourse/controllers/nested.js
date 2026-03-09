@@ -25,7 +25,7 @@ export default class NestedController extends Controller {
   @tracked page = 0;
   @tracked hasMoreRoots = false;
   @tracked loadingMore = false;
-  @tracked sort = "top";
+  @tracked sort;
   @tracked messageBusLastId;
   @tracked postNumber;
   @tracked contextMode = false;
