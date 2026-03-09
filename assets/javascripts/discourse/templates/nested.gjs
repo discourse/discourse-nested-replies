@@ -9,6 +9,7 @@ export default <template>
       @contextChain={{@controller.contextChain}}
       @targetPostNumber={{@controller.targetPostNumber}}
       @contextNoAncestors={{@controller.contextNoAncestors}}
+      @ancestorsTruncated={{@controller.ancestorsTruncated}}
       @sort={{@controller.sort}}
       @changeSort={{@controller.changeSort}}
       @viewFullThread={{@controller.viewFullThread}}

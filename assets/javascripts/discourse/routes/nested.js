@@ -15,6 +15,10 @@ export default class NestedRoute extends Route {
     context: { refreshModel: true },
   };
 
+  buildRouteInfoMetadata() {
+    return { scrollOnTransition: false };
+  }
+
   async model(params) {
     const { topic_id, slug, sort, post_number } = params;
 
@@ -101,6 +105,8 @@ export default class NestedRoute extends Route {
       contextChain: null,
       targetPostNumber: null,
       contextNoAncestors: false,
+      ancestorsTruncated: false,
+      topAncestorPostNumber: null,
     };
   }
 
@@ -136,6 +142,9 @@ export default class NestedRoute extends Route {
       contextChain: chainTip,
       targetPostNumber: Number(params.post_number),
       contextNoAncestors: noAncestors,
+      ancestorsTruncated: data.ancestors_truncated || false,
+      topAncestorPostNumber:
+        ancestors.length > 0 ? ancestors[0].post_number : null,
       rootNodes: [],
       page: 0,
       hasMoreRoots: false,

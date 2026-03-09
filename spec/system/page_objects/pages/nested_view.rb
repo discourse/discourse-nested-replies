@@ -243,6 +243,22 @@ module PageObjects
         self
       end
 
+      def click_copy_link_on_op
+        within(".nested-view__op") do
+          find(".show-more-actions").click if has_css?(".show-more-actions", wait: 0)
+          find("button.post-action-menu__copy-link").click
+        end
+        self
+      end
+
+      def click_copy_link_on_post(post)
+        within("[data-post-number='#{post.post_number}']") do
+          find(".show-more-actions").click if has_css?(".show-more-actions", wait: 0)
+          find("button.post-action-menu__copy-link").click
+        end
+        self
+      end
+
       def click_flat_view_link
         find(".nested-view__flat-link").click
         self

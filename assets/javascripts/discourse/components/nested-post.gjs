@@ -19,6 +19,7 @@ import { nativeShare } from "discourse/lib/pwa-utils";
 import { clipboardCopy } from "discourse/lib/utilities";
 import { and, not } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import nestedPostUrl from "../lib/nested-post-url";
 import NestedPostChildren from "./nested-post-children";
 
 export default class NestedPost extends Component {
@@ -154,7 +155,7 @@ export default class NestedPost extends Component {
   }
 
   get nestedShareUrl() {
-    return `/nested/${this.args.topic.slug}/${this.args.topic.id}?post_number=${this.args.post.post_number}`;
+    return nestedPostUrl(this.args.topic, this.args.post.post_number);
   }
 
   @action

@@ -154,20 +154,22 @@ module ::DiscourseNestedReplies
 
     # GET /nested/:slug/:topic_id/context/:post_number
     # Optional param: context (integer) — controls ancestor depth.
-    #   nil/absent = full ancestor chain (deep-links, notifications)
+    #   nil/absent = windowed ancestor chain capped at max_depth (deep-links, notifications)
     #   0 = no ancestors, target at depth 0 ("Continue this thread")
     def context
       target_post_number = params[:post_number].to_i
       sort = validated_sort
-      context_depth = params[:context]&.to_i # nil = full chain, 0 = no ancestors
+      context_depth = params[:context]&.to_i # nil = windowed chain, 0 = no ancestors
+      max_depth = loader.configured_max_depth
 
       target = @topic.posts.find_by(post_number: target_post_number)
       raise Discourse::NotFound unless target
 
       ancestors = []
+      ancestors_truncated = false
       unless context_depth == 0 || target.reply_to_post_number.blank? ||
                target.reply_to_post_number == 1
-        depth_limit = context_depth || 100
+        depth_limit = context_depth || max_depth
 
         # Walk ancestors (including deleted for now, visibility applied below; stop before OP)
         ancestor_rows =
@@ -185,6 +187,14 @@ module ::DiscourseNestedReplies
           scope = loader.apply_visibility(scope)
           loaded = loader.load_posts_for_tree(scope).to_a.index_by(&:post_number)
           ancestors = ancestor_post_numbers.filter_map { |pn| loaded[pn] }
+        end
+
+        # Check if the topmost ancestor still has a parent (that isn't the OP),
+        # meaning the chain was truncated and there are more ancestors above.
+        if ancestors.present?
+          top_ancestor = ancestors.first
+          ancestors_truncated =
+            top_ancestor.reply_to_post_number.present? && top_ancestor.reply_to_post_number != 1
         end
       end
 
@@ -213,6 +223,7 @@ module ::DiscourseNestedReplies
                  ancestors.map { |a|
                    serializer.serialize_post(a, reply_counts, descendant_counts)
                  },
+               ancestors_truncated: ancestors_truncated,
                siblings:
                  siblings_map.transform_values { |posts|
                    posts.map { |p| serializer.serialize_post(p, reply_counts, descendant_counts) }
