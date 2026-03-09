@@ -98,6 +98,7 @@ module ::DiscourseNestedReplies
           # the CTE query so we avoid materializing all descendants in Ruby.
           loader.flat_descendants_scope(
             parent_post_number,
+            sort: sort,
             offset: page * per_page,
             limit: per_page,
           )
@@ -105,12 +106,7 @@ module ::DiscourseNestedReplies
           scope =
             @topic.posts.where(reply_to_post_number: parent_post_number).where(post_number: 2..)
           scope = loader.apply_visibility(scope)
-          scope =
-            if depth >= loader.configured_max_depth
-              DiscourseNestedReplies::Sort.apply(scope, "old", last_level: true)
-            else
-              DiscourseNestedReplies::Sort.apply(scope, sort)
-            end
+          scope = DiscourseNestedReplies::Sort.apply(scope, sort)
           scope.offset(page * per_page).limit(per_page)
         end
 

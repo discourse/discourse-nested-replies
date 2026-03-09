@@ -97,6 +97,16 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       expect(json["sort"]).to eq(SiteSetting.nested_replies_default_sort)
     end
 
+    it "uses site setting default when no sort param is provided" do
+      SiteSetting.nested_replies_default_sort = "old"
+      Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+      sign_in(user)
+
+      get "/nested/#{topic.slug}/#{topic.id}/roots.json"
+      json = response.parsed_body
+      expect(json["sort"]).to eq("old")
+    end
+
     it "sorts by top (like_count desc)" do
       low = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 1)
       high = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil, like_count: 10)
@@ -106,6 +116,42 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       json = response.parsed_body
       root_ids = json["roots"].map { |r| r["id"] }
       expect(root_ids).to eq([high.id, low.id])
+    end
+
+    it "sorts by new (created_at desc)" do
+      old_post =
+        Fabricate(
+          :post,
+          topic: topic,
+          user: user,
+          reply_to_post_number: nil,
+          created_at: 2.days.ago,
+        )
+      new_post =
+        Fabricate(
+          :post,
+          topic: topic,
+          user: user,
+          reply_to_post_number: nil,
+          created_at: 1.hour.ago,
+        )
+      sign_in(user)
+
+      get roots_url(topic, sort: "new")
+      json = response.parsed_body
+      root_ids = json["roots"].map { |r| r["id"] }
+      expect(root_ids).to eq([new_post.id, old_post.id])
+    end
+
+    it "sorts by old (post_number asc)" do
+      first = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+      second = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+      sign_in(user)
+
+      get roots_url(topic, sort: "old")
+      json = response.parsed_body
+      root_ids = json["roots"].map { |r| r["id"] }
+      expect(root_ids).to eq([first.id, second.id])
     end
 
     it "preloads children in the response" do
@@ -119,6 +165,37 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       expect(root_json["children"]).to be_an(Array)
       expect(root_json["children"].length).to eq(1)
       expect(root_json["children"].first["id"]).to eq(child.id)
+    end
+
+    it "sorts preloaded children consistently with roots" do
+      root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+      low_child =
+        Fabricate(
+          :post,
+          topic: topic,
+          user: user,
+          reply_to_post_number: root.post_number,
+          like_count: 1,
+        )
+      high_child =
+        Fabricate(
+          :post,
+          topic: topic,
+          user: user,
+          reply_to_post_number: root.post_number,
+          like_count: 10,
+        )
+      sign_in(user)
+
+      get roots_url(topic, sort: "top")
+      json = response.parsed_body
+      children_ids = json["roots"].first["children"].map { |c| c["id"] }
+      expect(children_ids).to eq([high_child.id, low_child.id])
+
+      get roots_url(topic, sort: "old")
+      json = response.parsed_body
+      children_ids = json["roots"].first["children"].map { |c| c["id"] }
+      expect(children_ids).to eq([low_child.id, high_child.id])
     end
 
     it "includes direct_reply_count and total_descendant_count" do
@@ -386,6 +463,124 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       get children_url(topic, root.post_number)
       json = response.parsed_body
       expect(json["has_more"]).to eq(false)
+    end
+
+    describe "sorting" do
+      it "sorts children by top (like_count desc)" do
+        low =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: root.post_number,
+            like_count: 1,
+          )
+        high =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: root.post_number,
+            like_count: 10,
+          )
+        sign_in(user)
+
+        get children_url(topic, root.post_number, sort: "top")
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).to eq([high.id, low.id])
+      end
+
+      it "sorts children by new (created_at desc)" do
+        old_child =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: root.post_number,
+            created_at: 2.days.ago,
+          )
+        new_child =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: root.post_number,
+            created_at: 1.hour.ago,
+          )
+        sign_in(user)
+
+        get children_url(topic, root.post_number, sort: "new")
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).to eq([new_child.id, old_child.id])
+      end
+
+      it "sorts children by old (post_number asc)" do
+        first = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        second = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        sign_in(user)
+
+        get children_url(topic, root.post_number, sort: "old")
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).to eq([first.id, second.id])
+      end
+
+      it "respects sort at max nesting depth" do
+        SiteSetting.nested_replies_max_depth = 2
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        low_grandchild =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: child.post_number,
+            like_count: 1,
+          )
+        high_grandchild =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: child.post_number,
+            like_count: 10,
+          )
+        sign_in(user)
+
+        get children_url(topic, child.post_number, sort: "top", depth: 2)
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).to eq([high_grandchild.id, low_grandchild.id])
+      end
+
+      it "sorts flattened descendants when cap is enabled" do
+        SiteSetting.nested_replies_cap_nesting_depth = true
+        SiteSetting.nested_replies_max_depth = 2
+        child = Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        low_gc =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: child.post_number,
+            like_count: 1,
+          )
+        high_gc =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: user,
+            reply_to_post_number: child.post_number,
+            like_count: 10,
+          )
+        sign_in(user)
+
+        get children_url(topic, child.post_number, sort: "top", depth: 2)
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).to eq([high_gc.id, low_gc.id])
+      end
     end
 
     it "flattens descendants at max depth when cap is enabled" do
