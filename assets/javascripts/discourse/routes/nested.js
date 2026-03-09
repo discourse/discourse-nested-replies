@@ -15,6 +15,10 @@ export default class NestedRoute extends Route {
     context: { refreshModel: true },
   };
 
+  buildRouteInfoMetadata() {
+    return { scrollOnTransition: false };
+  }
+
   async model(params) {
     const { topic_id, slug, sort, post_number } = params;
 

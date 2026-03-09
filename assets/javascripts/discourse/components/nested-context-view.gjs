@@ -1,7 +1,7 @@
 import Component from "@glimmer/component";
 import { array, fn } from "@ember/helper";
 import { on } from "@ember/modifier";
-import { schedule } from "@ember/runloop";
+import { next } from "@ember/runloop";
 import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
@@ -29,9 +29,19 @@ export default class NestedContextView extends Component {
     return () => this.args.postScreenTracker?.unobserve(element);
   });
 
+  _scrollAttempts = 0;
+  _maxScrollAttempts = 20; // ~1 second at 50ms intervals
+
   constructor() {
     super(...arguments);
-    schedule("afterRender", this, this._scrollToTarget);
+    // Use next() so this runs after RouteScrollManager's next() callback,
+    // which otherwise resets scroll position on route transitions.
+    next(this, this._scrollToTarget);
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    this._destroyed = true;
   }
 
   get canCreatePost() {
@@ -43,23 +53,31 @@ export default class NestedContextView extends Component {
   }
 
   _scrollToTarget() {
+    if (this._destroyed) {
+      return;
+    }
+
     const postNumber = this.args.targetPostNumber;
     if (!postNumber) {
       return;
     }
 
-    requestAnimationFrame(() => {
-      const target = document.querySelector(
-        `.nested-context-view [data-post-number="${postNumber}"]`
-      );
-      if (target) {
-        const postEl = target.closest(".nested-post");
-        if (postEl) {
-          postEl.classList.add("nested-post--highlighted");
-        }
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+    const target = document.querySelector(
+      `.nested-context-view [data-post-number="${postNumber}"]`
+    );
+
+    if (target) {
+      const postEl = target.closest(".nested-post");
+      if (postEl) {
+        postEl.classList.add("nested-post--highlighted");
       }
-    });
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else if (this._scrollAttempts < this._maxScrollAttempts) {
+      // Element may not be in the DOM yet (async child rendering).
+      // Retry on the next animation frame.
+      this._scrollAttempts++;
+      requestAnimationFrame(() => this._scrollToTarget());
+    }
   }
 
   <template>
