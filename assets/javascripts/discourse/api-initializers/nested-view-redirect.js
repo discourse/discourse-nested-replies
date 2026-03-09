@@ -1,6 +1,7 @@
 import { ajax } from "discourse/lib/ajax";
 import { apiInitializer } from "discourse/lib/api";
 import Category from "discourse/models/category";
+import nestedPostUrl from "../lib/nested-post-url";
 
 const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?(?:\?(.*))?$/;
 
@@ -45,6 +46,20 @@ export default apiInitializer((api) => {
     if (route?.startsWith("nested")) {
       composerSavedFromNested = true;
     }
+  });
+
+  api.registerValueTransformer("post-share-url", ({ value, context }) => {
+    if (router.currentRouteName !== "nested") {
+      return value;
+    }
+
+    const post = context.post;
+    const topic = post.topic;
+    if (!topic) {
+      return value;
+    }
+
+    return nestedPostUrl(topic, post.post_number);
   });
 
   api.registerValueTransformer(

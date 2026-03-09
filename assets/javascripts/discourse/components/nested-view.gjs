@@ -8,6 +8,7 @@ import { modifier } from "ember-modifier";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
 import DButton from "discourse/components/d-button";
 import LoadMore from "discourse/components/load-more";
+import ShareTopicModal from "discourse/components/modal/share-topic";
 import PostAvatar from "discourse/components/post/avatar";
 import PostCookedHtml from "discourse/components/post/cooked-html";
 import PostMenu from "discourse/components/post/menu";
@@ -18,15 +19,22 @@ import TopicMap from "discourse/components/topic-map";
 import TopicTitleEditor from "discourse/components/topic-title-editor";
 import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
-import getURL from "discourse/lib/get-url";
+import { isTesting } from "discourse/lib/environment";
+import getURL, { getAbsoluteURL } from "discourse/lib/get-url";
+import postActionFeedback from "discourse/lib/post-action-feedback";
+import { nativeShare } from "discourse/lib/pwa-utils";
+import { clipboardCopy } from "discourse/lib/utilities";
 import { eq, gt } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 
 export default class NestedView extends Component {
+  @service capabilities;
   @service composer;
   @service currentUser;
+  @service modal;
+  @service site;
 
   trackOpPost = modifier((element) => {
     this.args.postScreenTracker?.observe(element, this.args.opPost);
@@ -120,8 +128,10 @@ export default class NestedView extends Component {
                   <PostMenu
                     @post={{@opPost}}
                     @canCreatePost={{true}}
+                    @copyLink={{this.copyOpLink}}
                     @replyToPost={{@replyToPost}}
                     @editPost={{@editPost}}
+                    @share={{this.shareOp}}
                     @toggleLike={{this.toggleOpLike}}
                     @showLogin={{this.noop}}
                   />
@@ -208,6 +218,45 @@ export default class NestedView extends Component {
       {{/if}}
     </div>
   </template>
+
+  @action
+  copyOpLink() {
+    if (this.site.mobileView) {
+      return this.shareOp();
+    }
+
+    const post = this.args.opPost;
+
+    let actionCallback = () => clipboardCopy(getAbsoluteURL(post.shareUrl));
+
+    if (isTesting()) {
+      actionCallback = () => {};
+    }
+
+    postActionFeedback({
+      postId: post.id,
+      actionClass: "post-action-menu__copy-link",
+      messageKey: "post.controls.link_copied",
+      actionCallback,
+      errorCallback: () => this.shareOp(),
+    });
+  }
+
+  @action
+  async shareOp() {
+    const post = this.args.opPost;
+    const topic = this.args.topic;
+
+    try {
+      await nativeShare(this.capabilities, {
+        url: getAbsoluteURL(post.shareUrl),
+      });
+    } catch {
+      this.modal.show(ShareTopicModal, {
+        model: { category: topic.category, topic, post },
+      });
+    }
+  }
 
   @action
   async toggleOpLike() {

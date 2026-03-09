@@ -113,6 +113,65 @@ RSpec.describe "Nested context view", type: :system do
     end
   end
 
+  context "with deeply nested posts exceeding max_depth" do
+    fab!(:deep_chain) do
+      posts = []
+      parent = op
+      13.times do |i|
+        post =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: Fabricate(:user),
+            raw: "Deep chain post #{i + 1}",
+            reply_to_post_number: parent.post_number,
+          )
+        posts << post
+        parent = post
+      end
+      posts
+    end
+
+    before { SiteSetting.nested_replies_max_depth = 10 }
+
+    it "deep-link shows target with windowed ancestors within max_depth" do
+      nested_view.visit_nested_context(topic, post_number: deep_chain[12].post_number)
+
+      expect(nested_view).to have_context_view
+      expect(nested_view).to have_post(deep_chain[12])
+      expect(nested_view).to have_post(deep_chain[3])
+      expect(nested_view).to have_no_post(deep_chain[1])
+    end
+
+    it "shows 'View parent context' when ancestors are truncated" do
+      nested_view.visit_nested_context(topic, post_number: deep_chain[12].post_number)
+
+      expect(nested_view).to have_view_parent_context_link
+    end
+
+    it "clicking 'View parent context' shifts window up to topmost ancestor" do
+      nested_view.visit_nested_context(topic, post_number: deep_chain[12].post_number)
+      nested_view.click_view_parent_context
+
+      expect(nested_view).to have_context_view
+      expect(nested_view).to have_post(deep_chain[2])
+      expect(nested_view).to have_no_post(deep_chain[12])
+    end
+
+    it "navigating up from context=0 shows windowed ancestors" do
+      nested_view.visit_nested_context(topic, post_number: deep_chain[12].post_number, context: 0)
+
+      expect(nested_view).to have_post_at_depth(deep_chain[12], depth: 0)
+      expect(nested_view).to have_no_post(deep_chain[11])
+
+      nested_view.click_view_parent_context
+
+      expect(nested_view).to have_post(deep_chain[12])
+      expect(nested_view).to have_post(deep_chain[3])
+      expect(nested_view).to have_view_parent_context_link
+    end
+  end
+
   describe "replying in context view" do
     it "stays in nested view after replying" do
       nested_view.visit_nested_context(topic, post_number: chain_posts[1].post_number)

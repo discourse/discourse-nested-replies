@@ -32,6 +32,8 @@ export default class NestedController extends Controller {
   @tracked contextChain = null;
   @tracked targetPostNumber = null;
   @tracked contextNoAncestors = false;
+  @tracked ancestorsTruncated = false;
+  @tracked topAncestorPostNumber = null;
   @tracked newRootPostIds = [];
   @tracked postScreenTracker = null;
   @tracked editingTopic = false;
@@ -112,13 +114,27 @@ export default class NestedController extends Controller {
 
   @action
   viewParentContext() {
-    this.router.transitionTo("nested", this.topic.slug, this.topic.id, {
-      queryParams: {
-        sort: this.sort,
-        post_number: this.targetPostNumber,
-        context: null,
-      },
-    });
+    if (this.ancestorsTruncated && this.topAncestorPostNumber) {
+      // Ancestors were truncated — shift window up by navigating to the
+      // topmost visible ancestor as the new target.
+      this.router.transitionTo("nested", this.topic.slug, this.topic.id, {
+        queryParams: {
+          sort: this.sort,
+          post_number: this.topAncestorPostNumber,
+          context: null,
+        },
+      });
+    } else {
+      // From context=0 (no ancestors) or shallow chain — load windowed
+      // ancestors for the current target.
+      this.router.transitionTo("nested", this.topic.slug, this.topic.id, {
+        queryParams: {
+          sort: this.sort,
+          post_number: this.targetPostNumber,
+          context: null,
+        },
+      });
+    }
   }
 
   @action

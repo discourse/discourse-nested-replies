@@ -15,6 +15,7 @@ import TopicTitleEditor from "discourse/components/topic-title-editor";
 import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
+import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
@@ -111,7 +112,7 @@ export default class NestedContextView extends Component {
             "discourse_nested_replies.context.view_full_thread"
           }}
         />
-        {{#if @contextNoAncestors}}
+        {{#if (or @contextNoAncestors @ancestorsTruncated)}}
           <DButton
             class="btn-flat nested-context-view__parent-context"
             @action={{@viewParentContext}}
