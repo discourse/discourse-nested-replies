@@ -139,6 +139,14 @@ module PageObjects
         has_css?(".nested-view__flat-link")
       end
 
+      def has_view_as_nested_link?
+        has_css?(".nested-view-link")
+      end
+
+      def has_no_view_as_nested_link?
+        has_no_css?(".nested-view-link")
+      end
+
       def has_sort_active?(sort)
         has_css?(".nested-sort-selector__option--active", text: SORT_LABELS[sort])
       end

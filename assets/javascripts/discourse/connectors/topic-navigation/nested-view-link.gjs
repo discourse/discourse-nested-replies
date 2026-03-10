@@ -1,10 +1,31 @@
 import Component from "@glimmer/component";
 import getURL from "discourse/lib/get-url";
+import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
 
 export default class NestedViewLink extends Component {
   static shouldRender(args, context) {
-    return context.siteSettings.nested_replies_enabled;
+    if (!context.siteSettings.nested_replies_enabled) {
+      return false;
+    }
+
+    if (context.siteSettings.nested_replies_show_view_as_nested_button) {
+      return true;
+    }
+
+    if (context.siteSettings.nested_replies_default) {
+      return true;
+    }
+
+    const categoryId = args.topic?.category_id;
+    if (categoryId) {
+      const category = Category.findById(categoryId);
+      if (category?.nested_replies_default) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   get nestedUrl() {

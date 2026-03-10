@@ -19,6 +19,9 @@ discourse_nested_replies:
     type: integer
     min: 1
     max: 10
+  nested_replies_show_view_as_nested_button:
+    default: false
+    client: true
   nested_replies_cap_nesting_depth:
     default: false
     client: true
