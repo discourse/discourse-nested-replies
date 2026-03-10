@@ -89,14 +89,18 @@ module ::DiscourseNestedReplies
           end
         end
 
-        batch_precompute_reactions(posts, post_ids)
+        self.class.batch_precompute_reactions(posts, post_ids)
       end
     end
 
     # Batch-compute the full reactions_for_post result for all posts in 1 SQL query.
     # This replicates ReactionsSerializerHelpers.reactions_for_post but avoids the
     # per-post COUNT query that causes N+1.
-    def batch_precompute_reactions(posts, post_ids)
+    #
+    # Class method so it can be called from both PostPreloader#prepare (nested view)
+    # and the TopicView.on_preload hook (normal flat view).
+    def self.batch_precompute_reactions(posts, post_ids = nil)
+      post_ids ||= posts.map(&:id).uniq
       main_reaction = DiscourseReactions::Reaction.main_reaction_id
       excluded = DiscourseReactions::Reaction.reactions_excluded_from_like
 

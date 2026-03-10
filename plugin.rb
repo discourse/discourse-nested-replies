@@ -58,6 +58,20 @@ after_initialize do
         .count
 
     topic_view.nested_replies_direct_reply_counts = counts
+
+    # Batch-precompute reactions to avoid N+1 in PostSerializer#reactions.
+    # discourse-reactions' reactions_for_post fires per-post queries (.pluck,
+    # .where.count); precomputing here short-circuits that via the
+    # PostSerializerReactionsPatch.
+    if defined?(DiscourseReactions) && SiteSetting.respond_to?(:discourse_reactions_enabled) &&
+         SiteSetting.discourse_reactions_enabled
+      posts_array = topic_view.posts.to_a
+      ActiveRecord::Associations::Preloader.new(
+        records: posts_array,
+        associations: [:post_actions, { reactions: { reaction_users: :user } }],
+      ).call
+      DiscourseNestedReplies::PostPreloader.batch_precompute_reactions(posts_array)
+    end
   end
 
   # --- Serialize direct_reply_count on posts (gated) ---
@@ -111,6 +125,7 @@ after_initialize do
 
   module ::DiscourseNestedReplies::PostSerializerReactionsPatch
     def reactions
+      return super unless SiteSetting.nested_replies_enabled
       if object.respond_to?(:precomputed_reactions) && (data = object.precomputed_reactions)
         return data
       end
