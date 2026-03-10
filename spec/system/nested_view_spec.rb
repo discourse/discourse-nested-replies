@@ -92,9 +92,7 @@ RSpec.describe "Nested view", type: :system do
   end
 
   describe "post editing" do
-    fab!(:root_reply) do
-      Fabricate(:post, topic: topic, user: user, raw: "My editable reply")
-    end
+    fab!(:root_reply) { Fabricate(:post, topic: topic, user: user, raw: "My editable reply") }
 
     let(:composer) { PageObjects::Components::Composer.new }
 
