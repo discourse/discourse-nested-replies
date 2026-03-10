@@ -191,10 +191,9 @@ RSpec.describe "Nested replies N+1 elimination", type: :request do
       expect(json["ancestor_chain"].length).to eq(2)
     end
 
-    it "filters deleted ancestors via apply_visibility" do
+    it "preserves deleted ancestors as placeholders to keep chains intact" do
       chain = build_chain(depth: 4, topic: topic)
       chain[1].update!(deleted_at: Time.current)
-      sign_in(admin)
 
       regular_user = Fabricate(:user)
       sign_in(regular_user)
@@ -203,7 +202,11 @@ RSpec.describe "Nested replies N+1 elimination", type: :request do
 
       json = response.parsed_body
       ancestor_numbers = json["ancestor_chain"].map { |a| a["post_number"] }
-      expect(ancestor_numbers).not_to include(chain[1].post_number)
+      expect(ancestor_numbers).to include(chain[1].post_number)
+
+      deleted_ancestor =
+        json["ancestor_chain"].find { |a| a["post_number"] == chain[1].post_number }
+      expect(deleted_ancestor["deleted_post_placeholder"]).to eq(true)
     end
   end
 

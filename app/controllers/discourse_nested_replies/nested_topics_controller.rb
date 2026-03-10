@@ -167,7 +167,7 @@ module ::DiscourseNestedReplies
                target.reply_to_post_number == 1
         depth_limit = context_depth || max_depth
 
-        # Walk ancestors (including deleted for now, visibility applied below; stop before OP)
+        # Walk ancestors (including deleted to preserve chain structure; stop before OP)
         ancestor_rows =
           DiscourseNestedReplies.walk_ancestors(
             topic_id: @topic.id,

@@ -51,12 +51,12 @@ RSpec.describe "Nested view copy link", type: :system do
   end
 
   describe "copy link in context=0 view" do
-    it "preserves context=0 in the copied URL" do
+    it "copies the standard nested URL without context param" do
       nested_view.visit_nested_context(topic, post_number: child_reply.post_number, context: 0)
       nested_view.click_copy_link_on_post(child_reply)
 
       expected =
-        "#{Discourse.base_url}/nested/#{topic.slug}/#{topic.id}?post_number=#{child_reply.post_number}&context=0"
+        "#{Discourse.base_url}/nested/#{topic.slug}/#{topic.id}?post_number=#{child_reply.post_number}"
       cdp.clipboard_has_text?(expected)
     end
   end
