@@ -2,7 +2,7 @@
 
 # name: discourse-nested-replies
 # about: Reddit-style nested/threaded view for Discourse topics
-# version: 0.1.0
+# version: 0.1.1
 # authors: Discourse
 # url: https://github.com/discourse/discourse-nested-replies
 # required_version: 2.7.0

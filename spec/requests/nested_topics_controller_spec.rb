@@ -420,7 +420,6 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       Fabricate(:post, topic: topic, user: user, reply_to_post_number: root_post.post_number)
 
       topic_view = TopicView.new(topic.id, user, skip_custom_fields: true, skip_post_loading: true)
-      topic_view.posts = [root_post]
       topic_view.nested_replies_skip_preload = true
       TopicView.preload(topic_view)
 

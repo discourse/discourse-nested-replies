@@ -105,5 +105,4 @@ module("Unit | Controller | nested – readPosts with postRegistry", function ()
 
     assert.false(post.read);
   });
-
 });
