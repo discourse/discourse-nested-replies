@@ -1,7 +1,7 @@
 import { settled } from "@ember/test-helpers";
 import { setupTest } from "ember-qunit";
 import { module, test } from "qunit";
-import PostScreenTracker from "../../../lib/post-screen-tracker";
+import PostScreenTracker from "discourse/plugins/discourse-nested-replies/discourse/lib/post-screen-tracker";
 
 module("Unit | Lib | post-screen-tracker", function (hooks) {
   setupTest(hooks);

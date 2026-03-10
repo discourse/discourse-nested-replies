@@ -1,6 +1,6 @@
 import { setupTest } from "ember-qunit";
 import { module, test } from "qunit";
-import nestedPostUrl from "../../../lib/nested-post-url";
+import nestedPostUrl from "discourse/plugins/discourse-nested-replies/discourse/lib/nested-post-url";
 
 module("Unit | Lib | nested-post-url", function (hooks) {
   setupTest(hooks);
