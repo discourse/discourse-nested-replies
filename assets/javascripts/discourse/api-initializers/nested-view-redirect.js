@@ -206,12 +206,12 @@ export default apiInitializer((api) => {
           }
           router.transitionTo("nested", slug, topicId, { queryParams });
         } else {
-          router.transitionTo("topic.fromParams", slug, topicId);
+          transition.retry();
         }
       })
       .catch(() => {
         // On error, let the normal topic route handle it
-        router.transitionTo("topic.fromParams", slug, topicId);
+        transition.retry();
       });
   });
 });
