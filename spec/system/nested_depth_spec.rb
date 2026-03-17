@@ -2,7 +2,7 @@
 
 require_relative "../support/nested_replies_helpers"
 
-RSpec.describe "Nested view depth and nesting", type: :system do
+RSpec.describe "Nested view depth and nesting" do
   include NestedRepliesHelpers
 
   fab!(:user) { Fabricate(:user, refresh_auto_groups: true) }

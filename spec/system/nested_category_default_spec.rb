@@ -2,7 +2,7 @@
 
 require_relative "../support/nested_replies_helpers"
 
-RSpec.describe "Nested view category default", type: :system do
+RSpec.describe "Nested view category default" do
   include NestedRepliesHelpers
 
   fab!(:admin)
