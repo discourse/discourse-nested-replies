@@ -1,7 +1,16 @@
+import PostTextSelection from "discourse/components/post-text-selection";
 import NestedContextView from "discourse/plugins/discourse-nested-replies/discourse/components/nested-context-view";
 import NestedView from "discourse/plugins/discourse-nested-replies/discourse/components/nested-view";
 
 export default <template>
+  <PostTextSelection
+    @quoteState={{@controller.quoteState}}
+    @selectText={{@controller.selectText}}
+    @buildQuoteMarkdown={{@controller.buildQuoteMarkdown}}
+    @editPost={{@controller.editPost}}
+    @topic={{@controller.topic}}
+  />
+
   {{#if @controller.contextMode}}
     <NestedContextView
       @topic={{@controller.topic}}

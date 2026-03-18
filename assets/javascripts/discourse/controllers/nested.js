@@ -6,6 +6,7 @@ import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
+import QuoteState from "discourse/lib/quote-state";
 import Composer from "discourse/models/composer";
 import { i18n } from "discourse-i18n";
 import processNode from "../lib/process-node";
@@ -39,6 +40,8 @@ export default class NestedController extends Controller {
   @tracked editingTopic = false;
   @tracked pinnedPostNumber = null;
   queryParams = ["sort", "post_number", "context"];
+
+  quoteState = new QuoteState();
 
   // Flat registry of all rendered posts by post_number.
   // Populated by NestedPost components via appEvents so that readPosts
@@ -216,6 +219,41 @@ export default class NestedController extends Controller {
       }
     } catch (e) {
       popupAjaxError(e);
+    }
+  }
+
+  @action
+  selectText() {
+    const tc = this._topicController;
+    const { postId, buffer, opts } = this.quoteState;
+    this._ensurePostInStream(postId);
+    tc.quoteState.selected(postId, buffer, opts);
+    return tc.selectText();
+  }
+
+  @action
+  buildQuoteMarkdown() {
+    const tc = this._topicController;
+    const { postId, buffer, opts } = this.quoteState;
+    this._ensurePostInStream(postId);
+    tc.quoteState.selected(postId, buffer, opts);
+    return tc.buildQuoteMarkdown();
+  }
+
+  _ensurePostInStream(postId) {
+    const postStream = this.topic?.postStream;
+    if (!postStream) {
+      return;
+    }
+
+    const id = parseInt(postId, 10);
+    if (!postStream.findLoadedPost(id)) {
+      for (const post of this.postRegistry.values()) {
+        if (post.id === id) {
+          postStream.storePost(post);
+          break;
+        }
+      }
     }
   }
 
