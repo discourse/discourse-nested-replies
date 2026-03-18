@@ -142,6 +142,7 @@ export default class NestedPost extends Component {
     if (this.expanded) {
       this.expanded = false;
       this.collapsed = true;
+      this.lineHighlighted = false;
     } else {
       this.expanded = true;
       this.collapsed = false;
@@ -150,7 +151,9 @@ export default class NestedPost extends Component {
 
   @action
   highlightLine() {
-    this.lineHighlighted = true;
+    if (!this.site.mobileView) {
+      this.lineHighlighted = true;
+    }
   }
 
   @action
