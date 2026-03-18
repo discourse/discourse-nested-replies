@@ -30,10 +30,6 @@ function isNestedDefault(siteSettings, categoryId) {
 
 export default apiInitializer((api) => {
   const siteSettings = api.container.lookup("service:site-settings");
-  if (!siteSettings.nested_replies_enabled) {
-    return;
-  }
-
   const router = api.container.lookup("service:router");
   const appEvents = api.container.lookup("service:app-events");
   const topicTrackingState = api.container.lookup(
@@ -42,6 +38,10 @@ export default apiInitializer((api) => {
   let composerSavedFromNested = false;
 
   appEvents.on("composer:saved", () => {
+    if (!siteSettings.nested_replies_enabled) {
+      return;
+    }
+
     const route = router.currentRouteName;
     if (route?.startsWith("nested")) {
       composerSavedFromNested = true;
@@ -49,6 +49,10 @@ export default apiInitializer((api) => {
   });
 
   api.registerValueTransformer("post-share-url", ({ value, context }) => {
+    if (!siteSettings.nested_replies_enabled) {
+      return value;
+    }
+
     if (router.currentRouteName !== "nested") {
       return value;
     }
@@ -65,6 +69,10 @@ export default apiInitializer((api) => {
   api.registerValueTransformer(
     "topic-url-for-post-number",
     ({ value, context }) => {
+      if (!siteSettings.nested_replies_enabled) {
+        return value;
+      }
+
       const currentRoute = router.currentRouteName;
       if (
         currentRoute === "topic.fromParams" ||
@@ -87,6 +95,10 @@ export default apiInitializer((api) => {
   // the official value transformer API, which is composable and
   // conflict-free with other plugins.
   api.registerValueTransformer("route-to-url", ({ value: path }) => {
+    if (!siteSettings.nested_replies_enabled) {
+      return path;
+    }
+
     // After composer save on nested route, suppress the redirect to flat view.
     // Returning null tells routeTo to abort navigation.
     if (composerSavedFromNested && /^\/t\//.test(path)) {
@@ -143,6 +155,10 @@ export default apiInitializer((api) => {
   const checkedTopicIds = new Set();
 
   router.on("routeWillChange", (transition) => {
+    if (!siteSettings.nested_replies_enabled) {
+      return;
+    }
+
     const toName = transition.to?.name;
     if (toName !== "topic.fromParams" && toName !== "topic.fromParamsNear") {
       return;

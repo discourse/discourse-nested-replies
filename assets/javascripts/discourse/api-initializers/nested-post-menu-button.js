@@ -3,15 +3,20 @@ import NestedRepliesExpandButton from "../components/nested-replies-expand-butto
 
 export default apiInitializer((api) => {
   const siteSettings = api.container.lookup("service:site-settings");
-  if (!siteSettings.nested_replies_enabled) {
-    return;
-  }
 
   api.registerValueTransformer("post-menu-buttons", ({ value: dag }) => {
+    if (!siteSettings.nested_replies_enabled) {
+      return;
+    }
+
     dag.add("nested-replies-expand", NestedRepliesExpandButton);
   });
 
   api.addPostAdminMenuButton((post) => {
+    if (!siteSettings.nested_replies_enabled) {
+      return;
+    }
+
     const container = api.container;
     const router = container.lookup("service:router");
     if (!router.currentRouteName?.startsWith("nested")) {
