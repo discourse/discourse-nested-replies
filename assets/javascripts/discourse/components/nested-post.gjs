@@ -42,6 +42,8 @@ export default class NestedPost extends Component {
     return () => this.args.postScreenTracker?.unobserve(element);
   });
 
+  @tracked _childWasCreated = false;
+
   constructor() {
     super(...arguments);
     this.appEvents.on(
@@ -70,6 +72,7 @@ export default class NestedPost extends Component {
     const post = this.args.post;
     post.set("direct_reply_count", (post.direct_reply_count || 0) + 1);
     post.set("total_descendant_count", (post.total_descendant_count || 0) + 1);
+    this._childWasCreated = true;
 
     if (isOwnPost && !this.expanded) {
       this.expanded = true;
@@ -83,6 +86,7 @@ export default class NestedPost extends Component {
 
   get hasReplies() {
     return (
+      this._childWasCreated ||
       (this.args.post.direct_reply_count || 0) > 0 ||
       (this.args.children?.length ?? 0) > 0
     );

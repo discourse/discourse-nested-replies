@@ -1,45 +1,22 @@
 import Component from "@glimmer/component";
 import { fn } from "@ember/helper";
-import { on } from "@ember/modifier";
-import { action } from "@ember/object";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
-import { modifier } from "ember-modifier";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
 import DButton from "discourse/components/d-button";
 import LoadMore from "discourse/components/load-more";
-import ShareTopicModal from "discourse/components/modal/share-topic";
-import PostAvatar from "discourse/components/post/avatar";
-import PostCookedHtml from "discourse/components/post/cooked-html";
-import PostMenu from "discourse/components/post/menu";
-import PostMetaData from "discourse/components/post/meta-data";
-import TopicCategory from "discourse/components/topic-category";
 import TopicMap from "discourse/components/topic-map";
-import TopicMetadata from "discourse/components/topic-metadata";
-import TopicTitleEditor from "discourse/components/topic-title-editor";
 import concatClass from "discourse/helpers/concat-class";
-import icon from "discourse/helpers/d-icon";
-import { isTesting } from "discourse/lib/environment";
-import getURL, { getAbsoluteURL } from "discourse/lib/get-url";
-import postActionFeedback from "discourse/lib/post-action-feedback";
-import { nativeShare } from "discourse/lib/pwa-utils";
-import { clipboardCopy } from "discourse/lib/utilities";
+import getURL from "discourse/lib/get-url";
 import { eq, gt } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import NestedOp from "./nested-op";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
+import NestedViewHeader from "./nested-view-header";
 
 export default class NestedView extends Component {
-  @service capabilities;
   @service composer;
   @service currentUser;
-  @service modal;
-  @service site;
-
-  trackOpPost = modifier((element) => {
-    this.args.postScreenTracker?.observe(element, this.args.opPost);
-    return () => this.args.postScreenTracker?.unobserve(element);
-  });
 
   // Core's TopicMap requires a @postStream arg for flat-view features
   // (filtering by participant, "Top Replies" toggle). The nested view has
@@ -70,77 +47,29 @@ export default class NestedView extends Component {
 
   <template>
     <div class={{concatClass "nested-view" (if this.isAma "nested-view--ama")}}>
-      <div class="nested-view__header">
-        {{#if @editingTopic}}
-          <div class="edit-topic-title">
-            <TopicTitleEditor
-              @bufferedTitle={{@buffered.title}}
-              @model={{@topic}}
-              @buffered={{@buffered}}
-            />
+      <NestedViewHeader
+        @topic={{@topic}}
+        @editingTopic={{@editingTopic}}
+        @buffered={{@buffered}}
+        @showCategoryChooser={{@showCategoryChooser}}
+        @canEditTags={{@canEditTags}}
+        @minimumRequiredTags={{@minimumRequiredTags}}
+        @finishedEditingTopic={{@finishedEditingTopic}}
+        @cancelEditingTopic={{@cancelEditingTopic}}
+        @topicCategoryChanged={{@topicCategoryChanged}}
+        @topicTagsChanged={{@topicTagsChanged}}
+        @startEditingTopic={{@startEditingTopic}}
+      />
 
-            <TopicMetadata
-              @buffered={{@buffered}}
-              @model={{@topic}}
-              @showCategoryChooser={{@showCategoryChooser}}
-              @canEditTags={{@canEditTags}}
-              @minimumRequiredTags={{@minimumRequiredTags}}
-              @onSave={{@finishedEditingTopic}}
-              @onCancel={{@cancelEditingTopic}}
-              @topicCategoryChanged={{@topicCategoryChanged}}
-              @topicTagsChanged={{@topicTagsChanged}}
-            />
-          </div>
-        {{else}}
-          <h1 class="nested-view__title">
-            <a
-              href={{@topic.url}}
-              {{on "click" @startEditingTopic}}
-              class="fancy-title"
-            >
-              {{htmlSafe @topic.fancyTitle~}}
-              {{~#if @topic.details.can_edit~}}
-                <span class="edit-topic__wrapper">
-                  {{icon "pencil" class="edit-topic"}}
-                </span>
-              {{~/if}}
-            </a>
-          </h1>
-          <TopicCategory @topic={{@topic}} class="topic-category" />
-        {{/if}}
-      </div>
-
-      {{#if @opPost}}
-        <div class="nested-view__op">
-          <article class="nested-view__op-article" {{this.trackOpPost}}>
-            <div class="nested-view__op-row">
-              <PostAvatar @post={{@opPost}} />
-              <div class="nested-view__op-body">
-                <PostMetaData
-                  @post={{@opPost}}
-                  @editPost={{@editPost}}
-                  @showHistory={{fn @showHistory @opPost}}
-                />
-                <div class="nested-view__op-content">
-                  <PostCookedHtml @post={{@opPost}} />
-                </div>
-                <section class="nested-view__op-menu post-menu-area clearfix">
-                  <PostMenu
-                    @post={{@opPost}}
-                    @canCreatePost={{true}}
-                    @copyLink={{this.copyOpLink}}
-                    @replyToPost={{@replyToPost}}
-                    @editPost={{@editPost}}
-                    @share={{this.shareOp}}
-                    @toggleLike={{this.toggleOpLike}}
-                    @showLogin={{this.noop}}
-                  />
-                </section>
-              </div>
-            </div>
-          </article>
-        </div>
-      {{/if}}
+      <NestedOp
+        @post={{@opPost}}
+        @topic={{@topic}}
+        @editPost={{@editPost}}
+        @showHistory={{@showHistory}}
+        @replyToPost={{@replyToPost}}
+        @postScreenTracker={{@postScreenTracker}}
+        @showPostMenu={{true}}
+      />
 
       <div class="nested-view__topic-map topic-map">
         <TopicMap
@@ -218,54 +147,4 @@ export default class NestedView extends Component {
       {{/if}}
     </div>
   </template>
-
-  @action
-  copyOpLink() {
-    if (this.site.mobileView) {
-      return this.shareOp();
-    }
-
-    const post = this.args.opPost;
-
-    let actionCallback = () => clipboardCopy(getAbsoluteURL(post.shareUrl));
-
-    if (isTesting()) {
-      actionCallback = () => {};
-    }
-
-    postActionFeedback({
-      postId: post.id,
-      actionClass: "post-action-menu__copy-link",
-      messageKey: "post.controls.link_copied",
-      actionCallback,
-      errorCallback: () => this.shareOp(),
-    });
-  }
-
-  @action
-  async shareOp() {
-    const post = this.args.opPost;
-    const topic = this.args.topic;
-
-    try {
-      await nativeShare(this.capabilities, {
-        url: getAbsoluteURL(post.shareUrl),
-      });
-    } catch {
-      this.modal.show(ShareTopicModal, {
-        model: { category: topic.category, topic, post },
-      });
-    }
-  }
-
-  @action
-  async toggleOpLike() {
-    const post = this.args.opPost;
-    const likeAction = post.likeAction;
-    if (likeAction?.canToggle) {
-      await likeAction.togglePromise(post);
-    }
-  }
-
-  noop() {}
 }

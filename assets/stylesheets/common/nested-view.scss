@@ -1,5 +1,9 @@
 // ── Top-level nested view ──────────────────────────────────────────
 .nested-view {
+  background: var(--secondary);
+  padding: var(--space-4);
+  border-radius: var(--d-border-radius-large);
+
   &__header {
     margin-bottom: 1em;
     padding-bottom: 0.75em;
@@ -165,9 +169,9 @@
   }
 
   &__floating-reply {
-    position: fixed;
+    position: sticky;
     bottom: 2em;
-    right: 2em;
+    float: right;
     z-index: 998;
     box-shadow: var(--shadow-dropdown);
     border-radius: 2em;
@@ -330,6 +334,14 @@
       width: auto;
       padding-top: 0;
       height: auto;
+
+      .avatar-flair {
+        background-size: 12px 12px;
+        width: 12px;
+        height: 12px;
+        right: -3px;
+        bottom: -2px;
+      }
     }
   }
 
@@ -699,7 +711,6 @@
 
   .nested-view__floating-reply {
     bottom: 1em;
-    right: 1em;
   }
 
   .nested-sort-selector {
