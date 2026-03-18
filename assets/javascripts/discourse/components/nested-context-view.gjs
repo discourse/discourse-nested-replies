@@ -1,33 +1,20 @@
 import Component from "@glimmer/component";
 import { array, fn } from "@ember/helper";
-import { on } from "@ember/modifier";
 import { next } from "@ember/runloop";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
-import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
-import PostAvatar from "discourse/components/post/avatar";
-import PostCookedHtml from "discourse/components/post/cooked-html";
-import PostMetaData from "discourse/components/post/meta-data";
-import TopicCategory from "discourse/components/topic-category";
-import TopicMetadata from "discourse/components/topic-metadata";
-import TopicTitleEditor from "discourse/components/topic-title-editor";
 import concatClass from "discourse/helpers/concat-class";
-import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import NestedOp from "./nested-op";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
+import NestedViewHeader from "./nested-view-header";
 
 export default class NestedContextView extends Component {
   @service composer;
   @service currentUser;
-
-  trackOpPost = modifier((element) => {
-    this.args.postScreenTracker?.observe(element, this.args.opPost);
-    return () => this.args.postScreenTracker?.unobserve(element);
-  });
 
   _scrollAttempts = 0;
   _maxScrollAttempts = 20; // ~1 second at 50ms intervals
@@ -82,45 +69,19 @@ export default class NestedContextView extends Component {
 
   <template>
     <div class="nested-view nested-context-view">
-      <div class="nested-view__header">
-        {{#if @editingTopic}}
-          <div class="edit-topic-title">
-            <TopicTitleEditor
-              @bufferedTitle={{@buffered.title}}
-              @model={{@topic}}
-              @buffered={{@buffered}}
-            />
-
-            <TopicMetadata
-              @buffered={{@buffered}}
-              @model={{@topic}}
-              @showCategoryChooser={{@showCategoryChooser}}
-              @canEditTags={{@canEditTags}}
-              @minimumRequiredTags={{@minimumRequiredTags}}
-              @onSave={{@finishedEditingTopic}}
-              @onCancel={{@cancelEditingTopic}}
-              @topicCategoryChanged={{@topicCategoryChanged}}
-              @topicTagsChanged={{@topicTagsChanged}}
-            />
-          </div>
-        {{else}}
-          <h1 class="nested-view__title">
-            <a
-              href={{@topic.url}}
-              {{on "click" @startEditingTopic}}
-              class="fancy-title"
-            >
-              {{htmlSafe @topic.fancyTitle~}}
-              {{~#if @topic.details.can_edit~}}
-                <span class="edit-topic__wrapper">
-                  {{icon "pencil" class="edit-topic"}}
-                </span>
-              {{~/if}}
-            </a>
-          </h1>
-          <TopicCategory @topic={{@topic}} class="topic-category" />
-        {{/if}}
-      </div>
+      <NestedViewHeader
+        @topic={{@topic}}
+        @editingTopic={{@editingTopic}}
+        @buffered={{@buffered}}
+        @showCategoryChooser={{@showCategoryChooser}}
+        @canEditTags={{@canEditTags}}
+        @minimumRequiredTags={{@minimumRequiredTags}}
+        @finishedEditingTopic={{@finishedEditingTopic}}
+        @cancelEditingTopic={{@cancelEditingTopic}}
+        @topicCategoryChanged={{@topicCategoryChanged}}
+        @topicTagsChanged={{@topicTagsChanged}}
+        @startEditingTopic={{@startEditingTopic}}
+      />
 
       <div class="nested-context-view__nav">
         <DButton
@@ -141,25 +102,13 @@ export default class NestedContextView extends Component {
         {{/if}}
       </div>
 
-      {{#if @opPost}}
-        <div class="nested-view__op">
-          <article class="nested-view__op-article" {{this.trackOpPost}}>
-            <div class="nested-view__op-row">
-              <PostAvatar @post={{@opPost}} />
-              <div class="nested-view__op-body">
-                <PostMetaData
-                  @post={{@opPost}}
-                  @editPost={{@editPost}}
-                  @showHistory={{fn @showHistory @opPost}}
-                />
-                <div class="nested-view__op-content">
-                  <PostCookedHtml @post={{@opPost}} />
-                </div>
-              </div>
-            </div>
-          </article>
-        </div>
-      {{/if}}
+      <NestedOp
+        @post={{@opPost}}
+        @topic={{@topic}}
+        @editPost={{@editPost}}
+        @showHistory={{@showHistory}}
+        @postScreenTracker={{@postScreenTracker}}
+      />
 
       <div class="nested-view__controls">
         <NestedSortSelector @current={{@sort}} @onChange={{@changeSort}} />

@@ -1,5 +1,9 @@
 // ── Top-level nested view ──────────────────────────────────────────
 .nested-view {
+  background: var(--secondary);
+  padding: var(--space-4);
+  border-radius: var(--d-border-radius-large);
+
   &__header {
     margin-bottom: 1em;
     padding-bottom: 0.75em;
