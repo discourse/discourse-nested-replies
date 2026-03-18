@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "View as nested button", type: :system do
+RSpec.describe "View as nested button" do
   fab!(:user) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:category)
   fab!(:nested_category) { Fabricate(:category, name: "Nested Category") }

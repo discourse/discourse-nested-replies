@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "Nested redirect fallback for untracked topics", type: :system do
+RSpec.describe "Nested redirect fallback for untracked topics" do
   fab!(:user) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:category)
   fab!(:topic_author, :user)

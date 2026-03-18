@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "Nested context view", type: :system do
+RSpec.describe "Nested context view" do
   fab!(:user) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:topic) { Fabricate(:topic, user: user) }
   fab!(:op) { Fabricate(:post, topic: topic, user: user, post_number: 1) }
