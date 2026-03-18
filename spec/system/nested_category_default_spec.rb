@@ -51,6 +51,38 @@ RSpec.describe "Nested view category default", type: :system do
       checkbox = find(".enable-nested-replies-default input[type='checkbox']")
       expect(checkbox).to be_checked
     end
+
+    context "with simplified category creation" do
+      before { SiteSetting.enable_simplified_category_creation = true }
+
+      it "allows admin to enable nested view default for a category" do
+        unchecked_category = Fabricate(:category, name: "Unchecked Category")
+
+        category_page.visit_settings(unchecked_category)
+
+        find(
+          ".form-kit__control-checkbox-label",
+          text: I18n.t("js.discourse_nested_replies.category_settings.default_nested_view"),
+        ).click
+        category_page.save_settings
+
+        unchecked_category.reload
+        expect(
+          unchecked_category.custom_fields[DiscourseNestedReplies::CATEGORY_DEFAULT_FIELD],
+        ).to eq(true)
+      end
+
+      it "shows checkbox as checked when category has nested default enabled" do
+        category_page.visit_settings(nested_category)
+
+        checkbox =
+          find(
+            ".form-kit__control-checkbox-label",
+            text: I18n.t("js.discourse_nested_replies.category_settings.default_nested_view"),
+          ).find(".form-kit__control-checkbox")
+        expect(checkbox).to be_checked
+      end
+    end
   end
 
   describe "topic redirect" do
