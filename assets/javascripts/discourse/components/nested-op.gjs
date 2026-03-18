@@ -27,13 +27,17 @@ export default class NestedOp extends Component {
   <template>
     {{#if @post}}
       <div class="nested-view__op">
-        <article class="nested-view__op-article" {{this.trackPost}}>
+        <article
+          class="nested-view__op-article"
+          data-post-number={{@post.post_number}}
+          {{this.trackPost}}
+        >
           <div class="nested-view__op-row">
             <PostAvatar @post={{@post}} />
             <div class="nested-view__op-body">
               <PostMetaData
                 @post={{@post}}
-                @editPost={{@editPost}}
+                @editPost={{fn @editPost @post}}
                 @showHistory={{fn @showHistory @post}}
               />
               <div class="nested-view__op-content">
@@ -46,7 +50,7 @@ export default class NestedOp extends Component {
                     @canCreatePost={{true}}
                     @copyLink={{this.copyLink}}
                     @replyToPost={{@replyToPost}}
-                    @editPost={{@editPost}}
+                    @editPost={{fn @editPost @post}}
                     @share={{this.share}}
                     @toggleLike={{this.toggleLike}}
                     @showLogin={{this.noop}}

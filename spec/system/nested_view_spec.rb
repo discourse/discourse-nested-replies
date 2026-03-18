@@ -103,6 +103,17 @@ RSpec.describe "Nested view" do
       expect(composer).to be_opened
       expect(composer).to have_content("My editable reply")
     end
+
+    it "opens the composer when editing the OP" do
+      op.update!(raw: "Original post content that is long enough")
+      op.rebake!
+
+      nested_view.visit_nested(topic)
+
+      nested_view.click_post_edit_button(op)
+      expect(composer).to be_opened
+      expect(composer).to have_content("Original post content that is long enough")
+    end
   end
 
   describe "empty topic" do
