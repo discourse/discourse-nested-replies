@@ -26,6 +26,12 @@ RSpec.describe "Nested view" do
       expect(nested_view).to have_root_post(root_reply)
     end
 
+    it "does not show the standard replies button on the OP" do
+      nested_view.visit_nested(topic)
+
+      expect(nested_view).to have_no_show_replies_button_for(op)
+    end
+
     it "shows the original post content" do
       op.update!(raw: "This is the original post content")
       op.rebake!
