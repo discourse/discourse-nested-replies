@@ -83,6 +83,18 @@ module PageObjects
         has_css?("[data-post-number='#{post.post_number}'] .post-action-menu__reply")
       end
 
+      def has_no_reply_button_for?(post)
+        has_no_css?("[data-post-number='#{post.post_number}'] .post-action-menu__reply")
+      end
+
+      def has_like_button_for?(post)
+        has_css?("[data-post-number='#{post.post_number}'] .post-action-menu__like")
+      end
+
+      def click_like_on_post(post)
+        find("[data-post-number='#{post.post_number}'] .post-action-menu__like").click
+      end
+
       def has_replies_toggle_for?(post)
         has_css?(
           "[data-post-number='#{post.post_number}'] .post-action-menu__nested-replies-expand",
@@ -155,6 +167,10 @@ module PageObjects
         has_css?(".nested-view__op")
       end
 
+      def has_no_reply_button_on_op?
+        has_no_css?(".nested-view__op .post-action-menu__reply")
+      end
+
       def has_topic_title_editor?
         has_css?(".edit-topic-title")
       end
@@ -172,11 +188,35 @@ module PageObjects
       end
 
       def has_floating_reply_button?
-        has_css?(".nested-view__floating-reply:not(.--hidden)")
+        has_css?(".nested-view__floating-actions:not(.--hidden) .nested-view__floating-reply")
       end
 
       def has_no_floating_reply_button?
-        has_no_css?(".nested-view__floating-reply:not(.--hidden)")
+        has_no_css?(".nested-view__floating-actions:not(.--hidden) .nested-view__floating-reply")
+      end
+
+      def has_floating_actions?
+        has_css?(".nested-view__floating-actions:not(.--hidden)")
+      end
+
+      def has_no_floating_actions?
+        has_no_css?(".nested-view__floating-actions:not(.--hidden)")
+      end
+
+      def has_notification_button?
+        has_css?(".nested-view__floating-actions .topic-notifications-button")
+      end
+
+      def has_no_notification_button?
+        has_no_css?(".nested-view__floating-actions .topic-notifications-button")
+      end
+
+      def has_admin_menu_button?
+        has_css?(".nested-view__floating-actions .toggle-admin-menu")
+      end
+
+      def has_no_admin_menu_button?
+        has_no_css?(".nested-view__floating-actions .toggle-admin-menu")
       end
 
       # ── Actions ───────────────────────────────────────────────────
@@ -248,6 +288,31 @@ module PageObjects
 
       def click_floating_reply_button
         find(".nested-view__floating-reply").click
+        self
+      end
+
+      def open_admin_menu
+        find(".nested-view__floating-actions .toggle-admin-menu").click
+        self
+      end
+
+      def click_admin_close_topic
+        open_admin_menu
+        find(".topic-admin-close .btn").click
+        self
+      end
+
+      def click_admin_open_topic
+        open_admin_menu
+        find(".topic-admin-open .btn").click
+        self
+      end
+
+      def change_notification_level(level)
+        find(
+          ".nested-view__floating-actions .topic-notifications-button .notifications-tracking-trigger-btn",
+        ).click
+        find(".notifications-tracking-btn[data-level-id='#{level}']").click
         self
       end
 

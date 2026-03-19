@@ -168,14 +168,14 @@
     margin-bottom: 1em;
   }
 
-  &__floating-reply {
+  &__floating-actions {
     position: sticky;
     bottom: 2em;
     float: right;
     z-index: 998;
-    box-shadow: var(--shadow-dropdown);
-    border-radius: 2em;
-    padding: 0.65em 1.25em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
     transition:
       transform 0.3s ease,
       opacity 0.3s ease;
@@ -185,6 +185,24 @@
       pointer-events: none;
       transform: translateY(2em);
     }
+
+    .select-kit.topic-notifications-button .select-kit-header {
+      box-shadow: var(--shadow-dropdown);
+      border-radius: 2em;
+      background: var(--secondary);
+    }
+
+    .topic-admin-menu-button-container .fk-d-menu__trigger {
+      box-shadow: var(--shadow-dropdown);
+      border-radius: 2em;
+      background: var(--secondary);
+    }
+  }
+
+  &__floating-reply {
+    box-shadow: var(--shadow-dropdown);
+    border-radius: 2em;
+    padding: 0.65em 1.25em;
   }
 
   &--ama {
@@ -680,57 +698,52 @@
   }
 }
 
-// ── Responsive (mobile) ────────────────────────────────────────────
-.mobile-view {
-  .nested-view {
+// ── Mobile card layout ─────────────────────────────────────────────
+// Reddit-style mobile redesign: avatars move inline into the post
+// header (handled via JS this.isMobile), the gutter becomes a narrow
+// column holding only vertical depth-lines that run the full height
+// of each subtree for continuous visual hierarchy.
+.nested-view--mobile {
+  padding: 0.5em;
+
+  // Grey background shows through the gaps between thread cards
+  background: var(--primary-very-low);
+  border-radius: 0;
+
+  .nested-view__title {
+    font-size: var(--font-up-3);
+  }
+
+  .nested-view__controls {
+    flex-wrap: wrap;
+  }
+
+  // Full-width cards: break out of container side padding
+  .nested-view__op,
+  .nested-view__roots {
+    margin-left: -0.5em;
+    margin-right: -0.5em;
+  }
+
+  // OP rendered as a full-width white card
+  .nested-view__op {
     padding: 0.5em;
-
-    &__title {
-      font-size: var(--font-up-3);
-    }
-
-    &__controls {
-      flex-wrap: wrap;
-    }
-
-    &__op {
-      padding: 0.5em;
-    }
-
-    &__op-row {
-      gap: 0.5em;
-    }
+    background: var(--secondary);
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
   }
 
-  .nested-post {
-    --nested-column-gap: 2px;
-    --nested-connector-offset: 6px;
-    --nested-hook-width: calc(
-      var(--nested-connector-offset) + var(--nested-avatar-size) / 2
-    );
-    --nested-load-more-left-adjust: 0px;
-
-    &__gutter {
-      // Avatars were touching the swooping horizontal line and not aligned over the vertical lines
-      .post-avatar {
-        left: 2px;
-      }
-    }
-
-    &__header {
-      flex-wrap: wrap;
-
-      .topic-meta-data {
-        margin-left: 0;
-      }
-    }
-
-    &__content {
-      overflow-x: auto;
-    }
+  .nested-view__op-row {
+    gap: 0.5em;
   }
 
-  .nested-view__floating-reply {
+  // Grey gap between root-level thread cards (and after OP)
+  .nested-view__roots {
+    gap: 0.5em;
+  }
+
+  .nested-view__floating-actions {
     bottom: 1em;
   }
 
@@ -741,10 +754,115 @@
   .nested-context-view__nav {
     flex-wrap: wrap;
   }
+
+  // Strip L-hook connectors on load-more buttons
+  .nested-post-children__load-more::before {
+    content: none;
+  }
+}
+
+// ── Mobile overrides for individual nested posts ───────────────────
+// Gutter shrinks to a narrow line-only column (avatar rendered inline
+// in the header instead).  Lines run full subtree height.
+.nested-post.--mobile {
+  --nested-line-gutter: 10px;
+  grid-template-columns: var(--nested-line-gutter) 1fr;
+
+  // Explicit rows are required so grid-row: 1 / -1 on the gutter
+  // can resolve -1 to the end of the explicit grid (line 3).
+  // Without this, -1 falls back to line 1 and the gutter only spans row 1.
+  grid-template-rows: auto 1fr;
+  column-gap: 4px;
+
+  // Tighter vertical spacing between siblings
+  --nested-vertical-gap: 0.25em;
+
+  // Gutter spans all grid rows so the depth-line runs continuously
+  // through the article AND children areas
+  > .nested-post__gutter {
+    grid-row: 1 / -1;
+  }
+
+  // Depth-line: full-height vertical bar, no decorative hooks
+  > .nested-post__gutter .nested-post__depth-line {
+    &::after {
+      left: calc(var(--nested-line-gutter) / 2 - 1px);
+      top: 0;
+      bottom: 0;
+    }
+
+    // Override the desktop L-bend on collapsed lines — straight bar
+    &--collapsed::after {
+      border: none;
+      background: var(--primary-low);
+      width: 2px;
+      border-radius: 0;
+      left: calc(var(--nested-line-gutter) / 2 - 1px);
+      bottom: 0;
+    }
+  }
+
+  // Hide the collapse icon — tapping the line itself collapses
+  .nested-post__depth-line-icon {
+    display: none;
+  }
+
+  // Inline avatar in the post header (rendered via template)
+  .nested-post__header .topic-avatar {
+    border-top: none;
+    float: none;
+    width: auto;
+    padding-top: 0;
+    height: auto;
+  }
+
+  // Strip all decorative connectors (L-hooks, sibling lines)
+  &:not(.--depth-0) {
+    &::before,
+    &:not(:last-child)::after {
+      content: none;
+    }
+  }
+
+  // No hover interaction on touch — depth-line handles collapse
+  > .nested-post__parent-line-btn {
+    display: none;
+  }
+
+  // Root threads rendered as full-width white cards.
+  // padding-left: 0 so the gutter starts at the card edge (= viewport
+  // edge after negative margins), giving consistent line spacing.
+  &.--depth-0 {
+    background: var(--secondary);
+    border-radius: 0;
+    padding: 0.5em 0.5em 0.5em 0;
+    margin-top: 0;
+  }
+
+  // Compact post headers
+  .nested-post__header {
+    flex-wrap: wrap;
+    gap: 0.25em;
+
+    .topic-meta-data {
+      margin-left: 0;
+    }
+  }
+
+  .nested-post__content {
+    overflow-x: auto;
+  }
+}
+
+// ── Deep nesting indent cap ────────────────────────────────────────
+// Reserved for future use — currently all depths use the same gutter
+// width for consistent line spacing.
+.nested-post.--deep {
+  // intentionally empty; --nested-line-gutter stays at 8px
 }
 
 html.footer-nav-visible {
-  .nested-view__floating-reply {
+  .nested-view__floating-actions {
     bottom: calc(var(--footer-nav-height) + env(safe-area-inset-bottom) + 1em);
   }
 }

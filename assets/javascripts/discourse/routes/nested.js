@@ -1,3 +1,4 @@
+import { getOwner } from "@ember/owner";
 import Route from "@ember/routing/route";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
@@ -50,6 +51,16 @@ export default class NestedRoute extends Route {
     // Hydrate the topic controller so core components that do
     // lookup("controller:topic") (e.g. share modal) find valid state.
     this.controllerFor("topic").set("model", model.topic);
+
+    // Set the topic route's currentModel so route actions that call
+    // this.modelFor("topic") (e.g. showFeatureTopic, showTopicTimerModal)
+    // find the topic instead of undefined.
+    getOwner(this).lookup("route:topic").currentModel = model.topic;
+
+    // The Topic details setter replaces _details without preserving the
+    // back-reference to the parent topic. Restore it so that
+    // topic.details.updateNotifications() can construct the correct URL.
+    model.topic.details.set("topic", model.topic);
 
     // Store the OP in the postStream so core components that call
     // postStream.findLoadedPost() (e.g. share modal's "reply as new topic")

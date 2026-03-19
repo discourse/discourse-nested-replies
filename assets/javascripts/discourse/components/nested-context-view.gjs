@@ -7,14 +7,14 @@ import concatClass from "discourse/helpers/concat-class";
 import getURL from "discourse/lib/get-url";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import NestedFloatingActions from "./nested-floating-actions";
 import NestedOp from "./nested-op";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 import NestedViewHeader from "./nested-view-header";
 
 export default class NestedContextView extends Component {
-  @service composer;
-  @service currentUser;
+  @service site;
 
   _scrollAttempts = 0;
   _maxScrollAttempts = 20; // ~1 second at 50ms intervals
@@ -29,10 +29,6 @@ export default class NestedContextView extends Component {
   willDestroy() {
     super.willDestroy(...arguments);
     this._destroyed = true;
-  }
-
-  get canCreatePost() {
-    return this.currentUser && this.args.topic?.details?.can_create_post;
   }
 
   get flatViewUrl() {
@@ -68,7 +64,12 @@ export default class NestedContextView extends Component {
   }
 
   <template>
-    <div class="nested-view nested-context-view">
+    <div
+      class={{concatClass
+        "nested-view nested-context-view"
+        (if this.site.mobileView "nested-view--mobile")
+      }}
+    >
       <NestedViewHeader
         @topic={{@topic}}
         @editingTopic={{@editingTopic}}
@@ -140,18 +141,10 @@ export default class NestedContextView extends Component {
         </div>
       {{/if}}
 
-      {{#if this.canCreatePost}}
-        <DButton
-          class={{concatClass
-            "btn-primary nested-view__floating-reply"
-            (if this.composer.visible "--hidden")
-          }}
-          @action={{fn @replyToPost @opPost 0}}
-          @icon="reply"
-          @label="topic.reply.title"
-          title={{i18n "topic.reply.help"}}
-        />
-      {{/if}}
+      <NestedFloatingActions
+        @topic={{@topic}}
+        @replyAction={{fn @replyToPost @opPost 0}}
+      />
     </div>
   </template>
 }
