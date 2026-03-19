@@ -78,9 +78,7 @@ RSpec.describe "Nested view floating actions" do
   end
 
   describe "in context view" do
-    fab!(:root_reply) do
-      Fabricate(:post, topic: topic, user: Fabricate(:user), raw: "Root reply")
-    end
+    fab!(:root_reply) { Fabricate(:post, topic: topic, user: Fabricate(:user), raw: "Root reply") }
     fab!(:child_reply) do
       Fabricate(
         :post,
