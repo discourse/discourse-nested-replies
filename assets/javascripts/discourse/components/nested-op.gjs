@@ -1,6 +1,7 @@
 import Component from "@glimmer/component";
 import { fn } from "@ember/helper";
 import { action } from "@ember/object";
+import { getOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import ShareTopicModal from "discourse/components/modal/share-topic";
@@ -16,6 +17,7 @@ import { clipboardCopy } from "discourse/lib/utilities";
 
 export default class NestedOp extends Component {
   @service capabilities;
+  @service currentUser;
   @service modal;
   @service site;
 
@@ -48,13 +50,13 @@ export default class NestedOp extends Component {
                 <section class="nested-view__op-menu post-menu-area clearfix">
                   <PostMenu
                     @post={{@post}}
-                    @canCreatePost={{true}}
+                    @canCreatePost={{this.canCreatePost}}
                     @copyLink={{this.copyLink}}
                     @replyToPost={{@replyToPost}}
                     @editPost={{fn @editPost @post}}
                     @share={{this.share}}
                     @toggleLike={{this.toggleLike}}
-                    @showLogin={{this.noop}}
+                    @showLogin={{this.showLogin}}
                   />
                 </section>
               {{/if}}
@@ -113,5 +115,12 @@ export default class NestedOp extends Component {
     }
   }
 
-  noop() {}
+  get canCreatePost() {
+    return this.currentUser && this.args.topic?.details?.can_create_post;
+  }
+
+  @action
+  showLogin() {
+    getOwner(this).lookup("route:application").send("showLogin");
+  }
 }

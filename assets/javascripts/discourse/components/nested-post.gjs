@@ -3,6 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { getOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import ShareTopicModal from "discourse/components/modal/share-topic";
@@ -25,6 +26,7 @@ import NestedPostChildren from "./nested-post-children";
 export default class NestedPost extends Component {
   @service appEvents;
   @service capabilities;
+  @service currentUser;
   @service modal;
   @service site;
   @service siteSettings;
@@ -82,6 +84,18 @@ export default class NestedPost extends Component {
 
   get depthClass() {
     return `--depth-${this.args.depth}`;
+  }
+
+  get isMobile() {
+    return this.site.mobileView;
+  }
+
+  get isDeepMobile() {
+    return this.site.mobileView && this.args.depth >= 4;
+  }
+
+  get canCreatePost() {
+    return this.currentUser && this.args.topic?.details?.can_create_post;
   }
 
   get hasReplies() {
@@ -217,13 +231,17 @@ export default class NestedPost extends Component {
   }
 
   @action
-  noop() {}
+  showLogin() {
+    getOwner(this).lookup("route:application").send("showLogin");
+  }
 
   <template>
     <div
       class={{concatClass
         "nested-post"
         this.depthClass
+        (if this.isMobile "--mobile")
+        (if this.isDeepMobile "--deep")
         (if @parentLineHighlighted "--parent-line-highlighted")
         (if this.collapsed "nested-post--collapsed")
         (if @isPinned "nested-post--pinned")
@@ -241,13 +259,15 @@ export default class NestedPost extends Component {
         ></button>
       {{/if}}
       <div class="nested-post__gutter">
-        {{#if this.isDeletedPlaceholder}}
-          <div class="nested-post__deleted-avatar-placeholder">
-            {{icon "trash-can"}}
-          </div>
-        {{else}}
-          <PostAvatar @post={{@post}} @size="small" />
-        {{/if}}
+        {{#unless this.isMobile}}
+          {{#if this.isDeletedPlaceholder}}
+            <div class="nested-post__deleted-avatar-placeholder">
+              {{icon "trash-can"}}
+            </div>
+          {{else}}
+            <PostAvatar @post={{@post}} @size="small" />
+          {{/if}}
+        {{/unless}}
         {{#if (and this.showDepthLine (not this.collapsed))}}
           <button
             type="button"
@@ -313,6 +333,9 @@ export default class NestedPost extends Component {
             {{this.trackPost}}
           >
             <div class="nested-post__header">
+              {{#if this.isMobile}}
+                <PostAvatar @post={{@post}} @size="small" />
+              {{/if}}
               <PostMetaData
                 @post={{@post}}
                 @editPost={{@editPost}}
@@ -335,7 +358,7 @@ export default class NestedPost extends Component {
             <section class="nested-post__menu post-menu-area clearfix">
               <PostMenu
                 @post={{@post}}
-                @canCreatePost={{true}}
+                @canCreatePost={{this.canCreatePost}}
                 @copyLink={{this.copyLink}}
                 @deletePost={{fn @deletePost @post}}
                 @editPost={{fn @editPost @post}}
@@ -346,7 +369,7 @@ export default class NestedPost extends Component {
                 @toggleLike={{this.toggleLike}}
                 @toggleReplies={{unless this.atMaxDepth this.toggleExpanded}}
                 @repliesShown={{if this.atMaxDepth true this.expanded}}
-                @showLogin={{this.noop}}
+                @showLogin={{this.showLogin}}
               />
             </section>
             {{#if this.showContinueThread}}

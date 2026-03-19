@@ -9,14 +9,14 @@ import concatClass from "discourse/helpers/concat-class";
 import getURL from "discourse/lib/get-url";
 import { eq, gt } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import NestedFloatingActions from "./nested-floating-actions";
 import NestedOp from "./nested-op";
 import NestedPost from "./nested-post";
 import NestedSortSelector from "./nested-sort-selector";
 import NestedViewHeader from "./nested-view-header";
 
 export default class NestedView extends Component {
-  @service composer;
-  @service currentUser;
+  @service site;
 
   // Core's TopicMap requires a @postStream arg for flat-view features
   // (filtering by participant, "Top Replies" toggle). The nested view has
@@ -37,16 +37,18 @@ export default class NestedView extends Component {
     return this.args.topic?.tags?.some((tag) => tag.name === "ama");
   }
 
-  get canCreatePost() {
-    return this.currentUser && this.args.topic?.details?.can_create_post;
-  }
-
   get flatViewUrl() {
     return getURL(`/t/${this.args.topic.slug}/${this.args.topic.id}?flat=1`);
   }
 
   <template>
-    <div class={{concatClass "nested-view" (if this.isAma "nested-view--ama")}}>
+    <div
+      class={{concatClass
+        "nested-view"
+        (if this.isAma "nested-view--ama")
+        (if this.site.mobileView "nested-view--mobile")
+      }}
+    >
       <NestedViewHeader
         @topic={{@topic}}
         @editingTopic={{@editingTopic}}
@@ -133,18 +135,10 @@ export default class NestedView extends Component {
         @isLoading={{@loadingMore}}
       />
 
-      {{#if this.canCreatePost}}
-        <DButton
-          class={{concatClass
-            "btn-primary nested-view__floating-reply"
-            (if this.composer.visible "--hidden")
-          }}
-          @action={{fn @replyToPost @opPost 0}}
-          @icon="reply"
-          @label="topic.reply.title"
-          title={{i18n "topic.reply.help"}}
-        />
-      {{/if}}
+      <NestedFloatingActions
+        @topic={{@topic}}
+        @replyAction={{fn @replyToPost @opPost 0}}
+      />
     </div>
   </template>
 }

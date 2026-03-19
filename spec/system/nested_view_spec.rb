@@ -243,14 +243,29 @@ RSpec.describe "Nested view" do
       Fabricate(:post, topic: topic, user: Fabricate(:user), raw: "Public reply")
     end
 
-    it "allows anonymous users to view the nested view" do
-      Capybara.reset_sessions!
+    before { Capybara.reset_sessions! }
 
+    it "allows anonymous users to view the nested view" do
       nested_view.visit_nested(topic)
 
       expect(nested_view).to have_nested_view
       expect(nested_view).to have_root_post(root_reply)
       expect(nested_view).to have_op_post
+    end
+
+    it "does not show reply buttons for anonymous users" do
+      nested_view.visit_nested(topic)
+
+      expect(nested_view).to have_no_reply_button_for(root_reply)
+      expect(nested_view).to have_no_reply_button_on_op
+      expect(nested_view).to have_no_floating_reply_button
+    end
+
+    it "shows login page when anonymous user clicks like" do
+      nested_view.visit_nested(topic)
+      nested_view.click_like_on_post(root_reply)
+
+      expect(page).to have_css(".login-fullpage")
     end
   end
 
