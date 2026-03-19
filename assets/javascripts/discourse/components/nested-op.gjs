@@ -28,7 +28,8 @@ export default class NestedOp extends Component {
     {{#if @post}}
       <div class="nested-view__op">
         <article
-          class="nested-view__op-article"
+          class="nested-view__op-article boxed"
+          data-post-id={{@post.id}}
           data-post-number={{@post.post_number}}
           {{this.trackPost}}
         >

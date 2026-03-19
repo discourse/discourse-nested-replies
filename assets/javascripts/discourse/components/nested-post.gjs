@@ -307,7 +307,8 @@ export default class NestedPost extends Component {
           </div>
         {{else}}
           <article
-            class="nested-post__article"
+            class="nested-post__article boxed"
+            data-post-id={{@post.id}}
             data-post-number={{@post.post_number}}
             {{this.trackPost}}
           >
