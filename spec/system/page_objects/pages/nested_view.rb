@@ -107,6 +107,10 @@ module PageObjects
         )
       end
 
+      def has_no_show_replies_button_for?(post)
+        has_no_css?("[data-post-number='#{post.post_number}'] .post-action-menu__show-replies")
+      end
+
       def has_depth_line_for?(post)
         wrapper = nested_post_wrapper(post)
         wrapper.find(".nested-post__gutter", match: :first).has_css?(".nested-post__depth-line")

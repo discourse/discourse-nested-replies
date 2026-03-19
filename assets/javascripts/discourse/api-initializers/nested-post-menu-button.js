@@ -9,6 +9,11 @@ export default apiInitializer((api) => {
       return;
     }
 
+    const router = api.container.lookup("service:router");
+    if (router.currentRouteName?.startsWith("nested")) {
+      dag.delete("replies");
+    }
+
     dag.add("nested-replies-expand", NestedRepliesExpandButton);
   });
 
