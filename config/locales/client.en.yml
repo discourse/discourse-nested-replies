@@ -37,8 +37,6 @@ en:
       pin_reply: "Pin to top"
       unpin_reply: "Unpin"
       context:
-        view_full_thread: "View full thread"
+        banner: "You are viewing a single thread from this topic."
+        view_full_topic: "View full topic"
         view_parent_context: "View parent context"
-        other_replies:
-          one: "%{count} other reply"
-          other: "%{count} other replies"
