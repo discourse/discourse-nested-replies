@@ -11,6 +11,7 @@ enabled_site_setting :nested_replies_enabled
 register_asset "stylesheets/common/nested-view.scss"
 register_svg_icon "nested-circle-plus"
 register_svg_icon "nested-circle-minus"
+register_svg_icon "nested-thread"
 
 module ::DiscourseNestedReplies
   PLUGIN_NAME = "discourse-nested-replies"

@@ -4,6 +4,7 @@ import { next } from "@ember/runloop";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import concatClass from "discourse/helpers/concat-class";
+import icon from "discourse/helpers/d-icon";
 import getURL from "discourse/lib/get-url";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -84,25 +85,6 @@ export default class NestedContextView extends Component {
         @startEditingTopic={{@startEditingTopic}}
       />
 
-      <div class="nested-context-view__nav">
-        <DButton
-          class="btn-flat nested-context-view__full-thread"
-          @action={{@viewFullThread}}
-          @translatedLabel={{i18n
-            "discourse_nested_replies.context.view_full_thread"
-          }}
-        />
-        {{#if (or @contextNoAncestors @ancestorsTruncated)}}
-          <DButton
-            class="btn-flat nested-context-view__parent-context"
-            @action={{@viewParentContext}}
-            @translatedLabel={{i18n
-              "discourse_nested_replies.context.view_parent_context"
-            }}
-          />
-        {{/if}}
-      </div>
-
       <NestedOp
         @post={{@opPost}}
         @topic={{@topic}}
@@ -116,6 +98,35 @@ export default class NestedContextView extends Component {
         <a href={{this.flatViewUrl}} class="nested-view__flat-link">{{i18n
             "discourse_nested_replies.view_as_flat"
           }}</a>
+      </div>
+
+      <div class="nested-context-view__banner">
+        <span class="nested-context-view__banner-icon">{{icon
+            "nested-thread"
+          }}</span>
+        <span class="nested-context-view__banner-text">{{i18n
+            "discourse_nested_replies.context.banner"
+          }}</span>
+        <div class="nested-context-view__nav">
+          <DButton
+            class="btn-default btn-small nested-context-view__full-thread"
+            @action={{@viewFullThread}}
+            @icon="arrow-left"
+            @translatedLabel={{i18n
+              "discourse_nested_replies.context.view_full_topic"
+            }}
+          />
+          {{#if (or @contextNoAncestors @ancestorsTruncated)}}
+            <DButton
+              class="btn-default btn-small nested-context-view__parent-context"
+              @action={{@viewParentContext}}
+              @icon="arrow-up"
+              @translatedLabel={{i18n
+                "discourse_nested_replies.context.view_parent_context"
+              }}
+            />
+          {{/if}}
+        </div>
       </div>
 
       {{#if @contextChain}}
