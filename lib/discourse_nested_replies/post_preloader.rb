@@ -62,6 +62,35 @@ module ::DiscourseNestedReplies
           map { |record| columns.map { |col| record.public_send(col) } }
         end
       end
+
+      def where(conditions = nil, *rest)
+        return self if conditions.nil?
+        result =
+          select do |record|
+            if conditions.is_a?(Hash)
+              conditions.all? { |k, v| record.public_send(k) == v }
+            else
+              true
+            end
+          end
+        PostsArray.new(result)
+      end
+
+      def limit(_n)
+        self
+      end
+
+      def order(*_args)
+        self
+      end
+
+      def not(*_args)
+        self
+      end
+
+      def reorder(*_args)
+        self
+      end
     end
 
     # Batch-preload associations that plugin serializer extensions access per-post.

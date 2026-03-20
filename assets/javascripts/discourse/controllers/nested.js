@@ -324,8 +324,9 @@ export default class NestedController extends Controller {
     }
 
     if (this.topic?.id && this.messageBusLastId != null) {
+      this._messageBusChannel = `/topic/${this.topic.id}`;
       this.messageBus.subscribe(
-        `/topic/${this.topic.id}`,
+        this._messageBusChannel,
         this._onMessage,
         this.messageBusLastId
       );
@@ -346,7 +347,10 @@ export default class NestedController extends Controller {
       );
       this._postEventsSubscribed = false;
     }
-    this.messageBus.unsubscribe("/topic/*", this._onMessage);
+    if (this._messageBusChannel) {
+      this.messageBus.unsubscribe(this._messageBusChannel, this._onMessage);
+      this._messageBusChannel = null;
+    }
     this.postRegistry.clear();
   }
 
@@ -406,11 +410,28 @@ export default class NestedController extends Controller {
   }
 
   async _handlePostChanged(data) {
+    if (data.type === "deleted") {
+      this._markPostDeletedLocally(data.id);
+      return;
+    }
+
     try {
       const postData = await ajax(`/posts/${data.id}.json`);
-      this.store.createRecord("post", postData);
+      const post = this.store.createRecord("post", postData);
+      post.topic = this.topic;
     } catch {
       // Post may not be visible
+    }
+  }
+
+  _markPostDeletedLocally(postId) {
+    for (const post of this.postRegistry.values()) {
+      if (post.id === postId) {
+        post.set("deleted", true);
+        post.set("deleted_post_placeholder", true);
+        post.set("cooked", "");
+        break;
+      }
     }
   }
 

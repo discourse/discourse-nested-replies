@@ -35,7 +35,7 @@ export default apiInitializer((api) => {
   const topicTrackingState = api.container.lookup(
     "service:topic-tracking-state"
   );
-  let composerSavedFromNested = false;
+  let composerSaveInfo = null;
 
   appEvents.on("composer:saved", () => {
     if (!siteSettings.nested_replies_enabled) {
@@ -44,7 +44,11 @@ export default apiInitializer((api) => {
 
     const route = router.currentRouteName;
     if (route?.startsWith("nested")) {
-      composerSavedFromNested = true;
+      const nestedController = api.container.lookup("controller:nested");
+      composerSaveInfo = {
+        topicId: nestedController?.topic?.id,
+        time: Date.now(),
+      };
     }
   });
 
@@ -100,10 +104,17 @@ export default apiInitializer((api) => {
     }
 
     // After composer save on nested route, suppress the redirect to flat view.
-    // Returning null tells routeTo to abort navigation.
-    if (composerSavedFromNested && /^\/t\//.test(path)) {
-      composerSavedFromNested = false;
-      return null;
+    // Returning null tells routeTo to abort navigation. Scoped to the same
+    // topic and expires after 5 seconds to prevent stale flags from
+    // suppressing unrelated navigations.
+    if (composerSaveInfo && /^\/t\//.test(path)) {
+      const match = TOPIC_URL_RE.exec(path);
+      const elapsed = Date.now() - composerSaveInfo.time;
+      const savedTopicId = composerSaveInfo.topicId;
+      composerSaveInfo = null;
+      if (match && parseInt(match[2], 10) === savedTopicId && elapsed < 5000) {
+        return null;
+      }
     }
 
     // If already in flat view, don't redirect to nested (e.g. timeline navigation).
@@ -152,7 +163,8 @@ export default apiInitializer((api) => {
   // state yet), intercept before the topic route's model hook runs.
   // When the topic isn't in tracking state, abort and fetch topic info
   // to determine the category before deciding which view to load.
-  const checkedTopicIds = new Set();
+  const checkedTopicIds = new Map();
+  const CHECKED_TOPIC_TTL_MS = 60_000;
 
   router.on("routeWillChange", (transition) => {
     if (!siteSettings.nested_replies_enabled) {
@@ -205,15 +217,32 @@ export default apiInitializer((api) => {
 
     // Topic not in tracking state (e.g. direct URL entry). Abort, look
     // up the category via a lightweight request, then redirect or resume.
-    if (checkedTopicIds.has(topicId)) {
+    const checkedAt = checkedTopicIds.get(topicId);
+    if (checkedAt && Date.now() - checkedAt < CHECKED_TOPIC_TTL_MS) {
       return;
     }
-    checkedTopicIds.add(topicId);
+    checkedTopicIds.set(topicId, Date.now());
 
+    // Evict stale entries to prevent unbounded growth
+    if (checkedTopicIds.size > 100) {
+      const now = Date.now();
+      for (const [id, time] of checkedTopicIds) {
+        if (now - time > CHECKED_TOPIC_TTL_MS) {
+          checkedTopicIds.delete(id);
+        }
+      }
+    }
+
+    const fromRoute = router.currentRouteName;
     transition.abort();
 
     ajax(`/t/${topicId}.json`, { data: { track_visit: false } })
       .then((data) => {
+        // Bail if user navigated away during the async lookup
+        if (router.currentRouteName !== fromRoute) {
+          return;
+        }
+
         if (isNestedDefault(siteSettings, data.category_id)) {
           const queryParams = {};
           const nearPost = transition.to?.params?.nearPost;
@@ -226,7 +255,9 @@ export default apiInitializer((api) => {
         }
       })
       .catch(() => {
-        // On error, let the normal topic route handle it
+        if (router.currentRouteName !== fromRoute) {
+          return;
+        }
         transition.retry();
       });
   });
