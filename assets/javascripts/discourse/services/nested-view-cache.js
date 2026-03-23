@@ -34,7 +34,18 @@ export default class NestedViewCacheService extends Service {
     window.removeEventListener("popstate", this._onPopstate);
   }
 
+  useNextTransition() {
+    this._forceUseCache = true;
+  }
+
   consumeTraversal() {
+    if (this._forceUseCache) {
+      this._forceUseCache = false;
+      this._lastNavigationType = null;
+      this._popstateTime = null;
+      return true;
+    }
+
     // Prefer Navigation API (explicit traversal type) when available
     if (this._lastNavigationType != null) {
       const result = this._lastNavigationType === "traverse";

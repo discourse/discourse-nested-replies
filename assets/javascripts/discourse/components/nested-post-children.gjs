@@ -216,6 +216,7 @@ export default class NestedPostChildren extends Component {
             @postScreenTracker={{@postScreenTracker}}
             @expansionState={{@expansionState}}
             @fetchedChildrenCache={{@fetchedChildrenCache}}
+            @scrollAnchor={{@scrollAnchor}}
           />
         {{/each}}
 

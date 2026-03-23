@@ -1,6 +1,5 @@
 import { getOwner } from "@ember/owner";
 import Route from "@ember/routing/route";
-import { schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import PostScreenTracker from "../lib/post-screen-tracker";
@@ -64,17 +63,12 @@ export default class NestedRoute extends Route {
       controller.expansionState = this._restoringFromCache.expansionState;
       controller.fetchedChildrenCache =
         this._restoringFromCache.fetchedChildrenCache;
-      const scrollY = this._restoringFromCache.scrollY;
+      controller.scrollAnchor = this._restoringFromCache.scrollAnchor;
       this._restoringFromCache = null;
-
-      schedule("afterRender", () => {
-        requestAnimationFrame(() => {
-          window.scrollTo(0, scrollY);
-        });
-      });
     } else {
       controller.expansionState = new Map();
       controller.fetchedChildrenCache = new Map();
+      controller.scrollAnchor = null;
     }
 
     controller.setProperties(model);
@@ -150,8 +144,29 @@ export default class NestedRoute extends Route {
       },
       expansionState: new Map(controller.expansionState),
       fetchedChildrenCache: new Map(controller.fetchedChildrenCache),
-      scrollY: window.scrollY,
+      scrollAnchor: this._findScrollAnchor(),
     });
+  }
+
+  _findScrollAnchor() {
+    const articles = document.querySelectorAll(
+      ".nested-post [data-post-number]"
+    );
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const el of articles) {
+      const rect = el.getBoundingClientRect();
+      const distance = Math.abs(rect.top);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = {
+          postNumber: Number(el.dataset.postNumber),
+          offsetFromTop: rect.top,
+        };
+      }
+    }
+    return best;
   }
 
   _processResponse(data, params) {

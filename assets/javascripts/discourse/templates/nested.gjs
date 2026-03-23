@@ -42,6 +42,7 @@ export default <template>
       @postScreenTracker={{@controller.postScreenTracker}}
       @expansionState={{@controller.expansionState}}
       @fetchedChildrenCache={{@controller.fetchedChildrenCache}}
+      @scrollAnchor={{@controller.scrollAnchor}}
     />
   {{else}}
     <NestedView
@@ -76,6 +77,7 @@ export default <template>
       @postScreenTracker={{@controller.postScreenTracker}}
       @expansionState={{@controller.expansionState}}
       @fetchedChildrenCache={{@controller.fetchedChildrenCache}}
+      @scrollAnchor={{@controller.scrollAnchor}}
     />
   {{/if}}
 </template>

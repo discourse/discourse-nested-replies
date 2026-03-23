@@ -40,6 +40,15 @@ export default class NestedPost extends Component {
     return () => this.args.postScreenTracker?.unobserve(element);
   });
 
+  restoreScroll = modifier((element) => {
+    const anchor = this.args.scrollAnchor;
+    if (anchor?.postNumber !== this.args.post.post_number) {
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    window.scrollTo(0, window.scrollY + rect.top - anchor.offsetFromTop);
+  });
+
   @tracked _childWasCreated = false;
 
   constructor() {
@@ -265,6 +274,7 @@ export default class NestedPost extends Component {
         (if @post.isWhisper "nested-post--whisper")
         (if @post.deleted "nested-post--deleted")
       }}
+      {{this.restoreScroll}}
     >
       {{#if @collapseParent}}
         <button
@@ -423,6 +433,7 @@ export default class NestedPost extends Component {
             @postScreenTracker={{@postScreenTracker}}
             @expansionState={{@expansionState}}
             @fetchedChildrenCache={{@fetchedChildrenCache}}
+            @scrollAnchor={{@scrollAnchor}}
           />
         {{/if}}
       </div>
