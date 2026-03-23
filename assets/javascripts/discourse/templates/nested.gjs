@@ -40,6 +40,8 @@ export default <template>
       @topicTagsChanged={{@controller.topicTagsChanged}}
       @minimumRequiredTags={{@controller.minimumRequiredTags}}
       @postScreenTracker={{@controller.postScreenTracker}}
+      @expansionState={{@controller.expansionState}}
+      @fetchedChildrenCache={{@controller.fetchedChildrenCache}}
     />
   {{else}}
     <NestedView
@@ -72,6 +74,8 @@ export default <template>
       @topicTagsChanged={{@controller.topicTagsChanged}}
       @minimumRequiredTags={{@controller.minimumRequiredTags}}
       @postScreenTracker={{@controller.postScreenTracker}}
+      @expansionState={{@controller.expansionState}}
+      @fetchedChildrenCache={{@controller.fetchedChildrenCache}}
     />
   {{/if}}
 </template>

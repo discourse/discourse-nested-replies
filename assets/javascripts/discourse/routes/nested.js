@@ -1,5 +1,6 @@
 import { getOwner } from "@ember/owner";
 import Route from "@ember/routing/route";
+import { schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import PostScreenTracker from "../lib/post-screen-tracker";
@@ -7,6 +8,7 @@ import processNode from "../lib/process-node";
 
 export default class NestedRoute extends Route {
   @service header;
+  @service nestedViewCache;
   @service screenTrack;
   @service siteSettings;
   @service store;
@@ -25,6 +27,19 @@ export default class NestedRoute extends Route {
     const { topic_id, slug, post_number } = params;
     const sort =
       params.sort || this.siteSettings.nested_replies_default_sort || "top";
+
+    const cacheKey = this.nestedViewCache.buildKey(topic_id, {
+      ...params,
+      sort,
+    });
+    if (this.nestedViewCache.consumeTraversal()) {
+      const cached = this.nestedViewCache.get(cacheKey);
+      if (cached) {
+        this._restoringFromCache = cached;
+        return cached.modelData;
+      }
+    }
+    this._restoringFromCache = null;
 
     if (post_number) {
       const queryParts = [`sort=${sort}`];
@@ -45,6 +60,23 @@ export default class NestedRoute extends Route {
   }
 
   setupController(controller, model) {
+    if (this._restoringFromCache) {
+      controller.expansionState = this._restoringFromCache.expansionState;
+      controller.fetchedChildrenCache =
+        this._restoringFromCache.fetchedChildrenCache;
+      const scrollY = this._restoringFromCache.scrollY;
+      this._restoringFromCache = null;
+
+      schedule("afterRender", () => {
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollY);
+        });
+      });
+    } else {
+      controller.expansionState = new Map();
+      controller.fetchedChildrenCache = new Map();
+    }
+
     controller.setProperties(model);
     controller.subscribe();
 
@@ -77,10 +109,49 @@ export default class NestedRoute extends Route {
 
   deactivate() {
     super.deactivate(...arguments);
-    this.controller.unsubscribe();
+
+    const controller = this.controller;
+    this._saveToCache(controller);
+
+    controller.unsubscribe();
     this.screenTrack.stop();
-    this.controller.postScreenTracker?.destroy();
-    this.controller.postScreenTracker = null;
+    controller.postScreenTracker?.destroy();
+    controller.postScreenTracker = null;
+  }
+
+  _saveToCache(controller) {
+    if (!controller.topic) {
+      return;
+    }
+
+    const cacheKey = this.nestedViewCache.buildKey(controller.topic.id, {
+      sort: controller.sort,
+      post_number: controller.postNumber,
+      context: controller.contextNoAncestors ? 0 : undefined,
+    });
+
+    this.nestedViewCache.save(cacheKey, {
+      modelData: {
+        topic: controller.topic,
+        opPost: controller.opPost,
+        rootNodes: controller.rootNodes,
+        page: controller.page,
+        hasMoreRoots: controller.hasMoreRoots,
+        sort: controller.sort,
+        messageBusLastId: controller.messageBusLastId,
+        pinnedPostNumber: controller.pinnedPostNumber,
+        postNumber: controller.postNumber,
+        contextMode: controller.contextMode,
+        contextChain: controller.contextChain,
+        targetPostNumber: controller.targetPostNumber,
+        contextNoAncestors: controller.contextNoAncestors,
+        ancestorsTruncated: controller.ancestorsTruncated,
+        topAncestorPostNumber: controller.topAncestorPostNumber,
+      },
+      expansionState: new Map(controller.expansionState),
+      fetchedChildrenCache: new Map(controller.fetchedChildrenCache),
+      scrollY: window.scrollY,
+    });
   }
 
   _processResponse(data, params) {

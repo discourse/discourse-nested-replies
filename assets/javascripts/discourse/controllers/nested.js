@@ -41,6 +41,15 @@ export default class NestedController extends Controller {
   @tracked pinnedPostNumber = null;
   queryParams = ["sort", "post_number", "context"];
 
+  // Externalized expansion state: postNumber → { expanded, collapsed }
+  // Components read on construction, write on toggle.
+  // Persisted across back/forward navigations via NestedViewCache.
+  expansionState = new Map();
+
+  // Cache of dynamically loaded children: postNumber → { childNodes, page, hasMore, fetchedFromServer }
+  // Populated by NestedPostChildren on every mutation, read on restoration.
+  fetchedChildrenCache = new Map();
+
   quoteState = new QuoteState();
 
   // Flat registry of all rendered posts by post_number.

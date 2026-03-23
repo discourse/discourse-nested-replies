@@ -31,13 +31,9 @@ export default class NestedPost extends Component {
   @service site;
   @service siteSettings;
 
-  @tracked
-  expanded =
-    ((this.args.children?.length ?? 0) > 0 ||
-      this.args.post.deleted_post_placeholder === true) &&
-    !this.args.defaultCollapsed;
+  @tracked expanded;
   @tracked lineHighlighted = false;
-  @tracked collapsed = false;
+  @tracked collapsed;
 
   trackPost = modifier((element) => {
     this.args.postScreenTracker?.observe(element, this.args.post);
@@ -48,6 +44,19 @@ export default class NestedPost extends Component {
 
   constructor() {
     super(...arguments);
+
+    const cached = this.args.expansionState?.get(this.args.post.post_number);
+    if (cached !== undefined) {
+      this.expanded = cached.expanded;
+      this.collapsed = cached.collapsed;
+    } else {
+      this.expanded =
+        ((this.args.children?.length ?? 0) > 0 ||
+          this.args.post.deleted_post_placeholder === true) &&
+        !this.args.defaultCollapsed;
+      this.collapsed = false;
+    }
+
     this.appEvents.on(
       "nested-replies:child-created",
       this,
@@ -79,6 +88,10 @@ export default class NestedPost extends Component {
     if (isOwnPost && !this.expanded) {
       this.expanded = true;
       this.collapsed = false;
+      this.args.expansionState?.set(this.args.post.post_number, {
+        expanded: true,
+        collapsed: false,
+      });
     }
   }
 
@@ -161,6 +174,10 @@ export default class NestedPost extends Component {
       this.expanded = true;
       this.collapsed = false;
     }
+    this.args.expansionState?.set(this.args.post.post_number, {
+      expanded: this.expanded,
+      collapsed: this.collapsed,
+    });
   }
 
   @action
@@ -404,6 +421,8 @@ export default class NestedPost extends Component {
             @unhighlightParentLine={{this.unhighlightLine}}
             @parentLineHighlighted={{this.lineHighlighted}}
             @postScreenTracker={{@postScreenTracker}}
+            @expansionState={{@expansionState}}
+            @fetchedChildrenCache={{@fetchedChildrenCache}}
           />
         {{/if}}
       </div>
