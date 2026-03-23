@@ -49,6 +49,13 @@ RSpec.describe "Nested context view" do
       expect(nested_view).to have_no_view_parent_context_link
     end
 
+    it "does not show 'View parent context' for a direct reply to the OP" do
+      nested_view.visit_nested_context(topic, post_number: chain_posts[0].post_number)
+
+      expect(nested_view).to have_view_full_thread_link
+      expect(nested_view).to have_no_view_parent_context_link
+    end
+
     it "highlights the target post" do
       nested_view.visit_nested_context(topic, post_number: chain_posts[2].post_number)
 

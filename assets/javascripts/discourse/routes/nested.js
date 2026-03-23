@@ -130,7 +130,9 @@ export default class NestedRoute extends Route {
 
     const targetNode = processNode(this.store, topic, data.target_post);
     const ancestors = (data.ancestor_chain || []).map((a) => assignTopic(a));
-    const noAncestors = ancestors.length === 0;
+    const targetReplyTo = targetNode.post.reply_to_post_number;
+    const hasParentContext = targetReplyTo && targetReplyTo !== 1;
+    const noAncestors = ancestors.length === 0 && hasParentContext;
 
     // Build nested chain: ancestor[0] -> ancestor[1] -> ... -> target
     // When context=0 (no ancestors), target becomes the chain root at depth 0.
