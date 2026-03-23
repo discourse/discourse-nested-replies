@@ -87,6 +87,51 @@ RSpec.describe "Nested replies N+1 elimination", type: :request do
         expect(stat.total_descendant_count).to be >= 1
       end
     end
+
+    it "tracks whisper counts separately from regular counts" do
+      chain = build_chain(depth: 2, topic: topic)
+      Fabricate(
+        :post,
+        topic: topic,
+        user: user,
+        reply_to_post_number: chain.last.post_number,
+        post_type: Post.types[:whisper],
+      )
+
+      parent_stat = NestedViewPostStat.find_by(post_id: chain.last.id)
+      expect(parent_stat.direct_reply_count).to eq(1)
+      expect(parent_stat.whisper_direct_reply_count).to eq(1)
+      expect(parent_stat.total_descendant_count).to eq(1)
+      expect(parent_stat.whisper_total_descendant_count).to eq(1)
+    end
+
+    it "does not increment whisper counts for regular posts" do
+      chain = build_chain(depth: 2, topic: topic)
+      Fabricate(:post, topic: topic, user: user, reply_to_post_number: chain.last.post_number)
+
+      parent_stat = NestedViewPostStat.find_by(post_id: chain.last.id)
+      expect(parent_stat.direct_reply_count).to eq(1)
+      expect(parent_stat.whisper_direct_reply_count).to eq(0)
+      expect(parent_stat.total_descendant_count).to eq(1)
+      expect(parent_stat.whisper_total_descendant_count).to eq(0)
+    end
+
+    it "increments whisper counts on all ancestors" do
+      chain = build_chain(depth: 3, topic: topic)
+      Fabricate(
+        :post,
+        topic: topic,
+        user: user,
+        reply_to_post_number: chain.last.post_number,
+        post_type: Post.types[:whisper],
+      )
+
+      chain.each do |ancestor|
+        stat = NestedViewPostStat.find_by(post_id: ancestor.id)
+        next unless stat
+        expect(stat.whisper_total_descendant_count).to be >= 1
+      end
+    end
   end
 
   describe "after_destroy stats decrement" do
@@ -129,6 +174,49 @@ RSpec.describe "Nested replies N+1 elimination", type: :request do
       leaf_id = leaf.id
       leaf.destroy!
       expect(NestedViewPostStat.find_by(post_id: leaf_id)).to be_nil
+    end
+
+    it "decrements whisper counts when a whisper is destroyed" do
+      chain = build_chain(depth: 2, topic: topic)
+      whisper =
+        Fabricate(
+          :post,
+          topic: topic,
+          user: user,
+          reply_to_post_number: chain.last.post_number,
+          post_type: Post.types[:whisper],
+        )
+
+      parent_stat = NestedViewPostStat.find_by(post_id: chain.last.id)
+      expect(parent_stat.whisper_direct_reply_count).to eq(1)
+      expect(parent_stat.whisper_total_descendant_count).to eq(1)
+
+      whisper.destroy!
+
+      parent_stat.reload
+      expect(parent_stat.direct_reply_count).to eq(0)
+      expect(parent_stat.whisper_direct_reply_count).to eq(0)
+      expect(parent_stat.total_descendant_count).to eq(0)
+      expect(parent_stat.whisper_total_descendant_count).to eq(0)
+    end
+
+    it "does not decrement whisper counts when a regular post is destroyed" do
+      chain = build_chain(depth: 2, topic: topic)
+      Fabricate(
+        :post,
+        topic: topic,
+        user: user,
+        reply_to_post_number: chain.last.post_number,
+        post_type: Post.types[:whisper],
+      )
+      regular =
+        Fabricate(:post, topic: topic, user: user, reply_to_post_number: chain.last.post_number)
+
+      regular.destroy!
+
+      parent_stat = NestedViewPostStat.find_by(post_id: chain.last.id)
+      expect(parent_stat.direct_reply_count).to eq(1)
+      expect(parent_stat.whisper_direct_reply_count).to eq(1)
     end
   end
 

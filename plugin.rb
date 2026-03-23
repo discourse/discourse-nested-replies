@@ -51,10 +51,14 @@ after_initialize do
     post_numbers = topic_view.posts.map(&:post_number)
     next if post_numbers.empty?
 
+    visible_types = [Post.types[:regular], Post.types[:moderator_action]]
+    visible_types << Post.types[:whisper] if topic_view.guardian.user&.whisperer?
+
     counts =
       Post
         .where(topic_id: topic_view.topic.id, deleted_at: nil)
         .where(reply_to_post_number: post_numbers)
+        .where(post_type: visible_types)
         .group(:reply_to_post_number)
         .count
 
@@ -199,6 +203,8 @@ after_initialize do
   # Keep nested_view_post_stats counts in sync when posts are created or deleted.
   # direct_reply_count: incremented on the immediate parent only.
   # total_descendant_count: incremented on ALL ancestors up the reply chain.
+  # whisper_* columns track the whisper subset so non-staff users see
+  # counts that exclude whispers (prevents leaking whisper existence).
 
   add_model_callback(:post, :after_create) do
     next if reply_to_post_number.blank?
@@ -215,28 +221,45 @@ after_initialize do
 
     ancestor_ids = ancestors.map(&:id)
     direct_parent_id = ancestors.find { |a| a.depth == 1 }&.id
+    is_whisper = post_type == Post.types[:whisper] ? 1 : 0
 
     # Single upsert: increment total_descendant_count for all ancestors,
     # direct_reply_count only for the immediate parent.
-    DB.exec(<<~SQL, ids: ancestor_ids, parent_id: direct_parent_id)
-      INSERT INTO nested_view_post_stats (post_id, direct_reply_count, total_descendant_count, created_at, updated_at)
+    # whisper_* columns are incremented only when the new post is a whisper.
+    DB.exec(<<~SQL, ids: ancestor_ids, parent_id: direct_parent_id, whisper: is_whisper)
+      INSERT INTO nested_view_post_stats (post_id, direct_reply_count, total_descendant_count,
+                                           whisper_direct_reply_count, whisper_total_descendant_count,
+                                           created_at, updated_at)
       SELECT aid,
              CASE WHEN aid = :parent_id THEN 1 ELSE 0 END,
              1,
+             CASE WHEN aid = :parent_id THEN :whisper ELSE 0 END,
+             :whisper,
              NOW(), NOW()
       FROM unnest(ARRAY[:ids]::int[]) AS aid
       ON CONFLICT (post_id) DO UPDATE SET
         total_descendant_count = nested_view_post_stats.total_descendant_count + 1,
         direct_reply_count = nested_view_post_stats.direct_reply_count +
           CASE WHEN nested_view_post_stats.post_id = :parent_id THEN 1 ELSE 0 END,
+        whisper_total_descendant_count = nested_view_post_stats.whisper_total_descendant_count + :whisper,
+        whisper_direct_reply_count = nested_view_post_stats.whisper_direct_reply_count +
+          CASE WHEN nested_view_post_stats.post_id = :parent_id THEN :whisper ELSE 0 END,
         updated_at = NOW()
     SQL
   end
 
   add_model_callback(:post, :after_destroy) do
     if reply_to_post_number.present?
-      my_descendants = NestedViewPostStat.where(post_id: id).pick(:total_descendant_count) || 0
+      stat =
+        NestedViewPostStat.where(post_id: id).pick(
+          :total_descendant_count,
+          :whisper_total_descendant_count,
+        )
+      my_descendants = stat&.first || 0
+      my_whisper_descendants = stat&.second || 0
       removed = 1 + my_descendants
+      is_whisper = post_type == Post.types[:whisper] ? 1 : 0
+      whisper_removed = is_whisper + my_whisper_descendants
 
       # Walk ancestors (including deleted — post may already be soft-deleted) for stats decrement
       ancestors =
@@ -251,16 +274,28 @@ after_initialize do
         direct_parent_id = ancestors.find { |a| a.depth == 1 }&.id
 
         # Single UPDATE: decrement stats for all ancestors, clamped at 0
-        DB.exec(<<~SQL, ids: ancestor_ids, parent_id: direct_parent_id, removed: removed)
+        DB.exec(
+          <<~SQL,
           UPDATE nested_view_post_stats
           SET total_descendant_count = GREATEST(total_descendant_count - :removed, 0),
               direct_reply_count = GREATEST(
                 direct_reply_count - CASE WHEN post_id = :parent_id THEN 1 ELSE 0 END,
                 0
               ),
+              whisper_total_descendant_count = GREATEST(whisper_total_descendant_count - :whisper_removed, 0),
+              whisper_direct_reply_count = GREATEST(
+                whisper_direct_reply_count - CASE WHEN post_id = :parent_id THEN :is_whisper ELSE 0 END,
+                0
+              ),
               updated_at = NOW()
           WHERE post_id = ANY(ARRAY[:ids]::int[])
         SQL
+          ids: ancestor_ids,
+          parent_id: direct_parent_id,
+          removed: removed,
+          whisper_removed: whisper_removed,
+          is_whisper: is_whisper,
+        )
       end
     end
 

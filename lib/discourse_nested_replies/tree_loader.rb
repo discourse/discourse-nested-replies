@@ -23,6 +23,12 @@ module ::DiscourseNestedReplies
       @guardian = guardian
     end
 
+    def visible_post_types
+      types = [Post.types[:regular], Post.types[:moderator_action]]
+      types << Post.types[:whisper] if guardian.user&.whisperer?
+      types
+    end
+
     def op_post
       @op_post ||= load_posts_for_tree(topic.posts.where(post_number: 1)).first
     end
@@ -46,7 +52,7 @@ module ::DiscourseNestedReplies
 
     def apply_visibility(scope)
       scope = scope.unscope(where: :deleted_at)
-      scope = scope.where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
+      scope = scope.where(post_type: visible_post_types)
       scope
     end
 
@@ -104,7 +110,7 @@ module ::DiscourseNestedReplies
           topic_id: topic.id,
           parent_numbers: parent_numbers,
           limit: SIBLINGS_PER_ANCESTOR,
-          post_types: [Post.types[:regular], Post.types[:moderator_action]],
+          post_types: visible_post_types,
         }
 
         sibling_ids = DB.query_single(<<~SQL, **sql_params)
@@ -151,7 +157,7 @@ module ::DiscourseNestedReplies
     # grandchildren, etc.) and returns them as a flat scope. Used when
     # cap_nesting_depth is ON to flatten deep legacy threads at the last level.
     def flat_descendants_scope(parent_post_number, sort:, offset: 0, limit: CHILDREN_PER_PAGE)
-      post_types = [Post.types[:regular], Post.types[:moderator_action]]
+      post_types = visible_post_types
       order_expr = DiscourseNestedReplies::Sort.sql_order_expression(sort)
 
       descendant_post_numbers =
@@ -201,16 +207,28 @@ module ::DiscourseNestedReplies
         .with_deleted
         .where(topic_id: topic.id)
         .where(reply_to_post_number: post_numbers)
+        .where(post_type: visible_post_types)
         .group(:reply_to_post_number)
         .count
     end
 
     # Batch-load total descendant counts from the stats table.
     # Returns { post_id => count } keyed by post ID (not post_number).
+    # For non-staff, subtracts whisper counts to avoid leaking whisper existence.
     def total_descendant_counts(post_ids)
       return {} if post_ids.empty?
 
-      NestedViewPostStat.where(post_id: post_ids.uniq).pluck(:post_id, :total_descendant_count).to_h
+      if guardian.user&.whisperer?
+        NestedViewPostStat
+          .where(post_id: post_ids.uniq)
+          .pluck(:post_id, :total_descendant_count)
+          .to_h
+      else
+        NestedViewPostStat
+          .where(post_id: post_ids.uniq)
+          .pluck(:post_id, Arel.sql("total_descendant_count - whisper_total_descendant_count"))
+          .to_h
+      end
     end
   end
 end
