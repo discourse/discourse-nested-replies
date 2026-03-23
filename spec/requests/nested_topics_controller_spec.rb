@@ -415,6 +415,110 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       end
     end
 
+    describe "whisper visibility" do
+      fab!(:whisper) do
+        Fabricate(
+          :post,
+          topic: topic,
+          user: admin,
+          reply_to_post_number: nil,
+          post_type: Post.types[:whisper],
+        )
+      end
+
+      it "excludes whispers for regular users" do
+        sign_in(user)
+        get roots_url(topic)
+        json = response.parsed_body
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids).not_to include(whisper.id)
+      end
+
+      it "includes whispers for staff" do
+        sign_in(admin)
+        get roots_url(topic)
+        json = response.parsed_body
+        root_ids = json["roots"].map { |r| r["id"] }
+        expect(root_ids).to include(whisper.id)
+      end
+
+      it "excludes whisper children for regular users" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        whisper_child =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: admin,
+            reply_to_post_number: root.post_number,
+            post_type: Post.types[:whisper],
+          )
+        sign_in(user)
+
+        get children_url(topic, root.post_number)
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).not_to include(whisper_child.id)
+      end
+
+      it "includes whisper children for staff" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        whisper_child =
+          Fabricate(
+            :post,
+            topic: topic,
+            user: admin,
+            reply_to_post_number: root.post_number,
+            post_type: Post.types[:whisper],
+          )
+        sign_in(admin)
+
+        get children_url(topic, root.post_number)
+        json = response.parsed_body
+        child_ids = json["children"].map { |c| c["id"] }
+        expect(child_ids).to include(whisper_child.id)
+      end
+    end
+
+    describe "whisper reply count visibility" do
+      it "excludes whisper from reply counts for regular users" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        Fabricate(
+          :post,
+          topic: topic,
+          user: admin,
+          reply_to_post_number: root.post_number,
+          post_type: Post.types[:whisper],
+        )
+        sign_in(user)
+
+        get roots_url(topic)
+        json = response.parsed_body
+        root_json = json["roots"].find { |r| r["id"] == root.id }
+        expect(root_json["direct_reply_count"]).to eq(1)
+        expect(root_json["total_descendant_count"]).to eq(1)
+      end
+
+      it "includes whisper in reply counts for staff" do
+        root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
+        Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)
+        Fabricate(
+          :post,
+          topic: topic,
+          user: admin,
+          reply_to_post_number: root.post_number,
+          post_type: Post.types[:whisper],
+        )
+        sign_in(admin)
+
+        get roots_url(topic)
+        json = response.parsed_body
+        root_json = json["roots"].find { |r| r["id"] == root.id }
+        expect(root_json["direct_reply_count"]).to eq(2)
+        expect(root_json["total_descendant_count"]).to eq(2)
+      end
+    end
+
     it "skips the on_preload reply-count query for nested endpoints" do
       root_post = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
       Fabricate(:post, topic: topic, user: user, reply_to_post_number: root_post.post_number)

@@ -608,6 +608,13 @@
     font-style: italic;
   }
 
+  &--whisper {
+    .nested-post__content .cooked {
+      font-style: italic;
+      color: var(--primary-medium);
+    }
+  }
+
   &__deleted-avatar-placeholder {
     width: var(--nested-avatar-size);
     height: var(--nested-avatar-size);

@@ -245,6 +245,7 @@ export default class NestedPost extends Component {
         (if @parentLineHighlighted "--parent-line-highlighted")
         (if this.collapsed "nested-post--collapsed")
         (if @isPinned "nested-post--pinned")
+        (if @post.isWhisper "nested-post--whisper")
         (if @post.deleted "nested-post--deleted")
       }}
     >
