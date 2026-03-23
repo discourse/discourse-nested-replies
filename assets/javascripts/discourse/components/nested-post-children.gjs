@@ -32,6 +32,19 @@ export default class NestedPostChildren extends Component {
       this,
       this._onChildCreated
     );
+
+    const cached = this.args.fetchedChildrenCache?.get(
+      this.args.parentPostNumber
+    );
+    if (cached) {
+      this.childNodes = cached.childNodes;
+      this.page = cached.page;
+      this.hasMore = cached.hasMore;
+      this.loaded = true;
+      this._fetchedFromServer = cached.fetchedFromServer;
+      return;
+    }
+
     if (this.args.preloadedChildren?.length > 0) {
       this.childNodes = this.args.preloadedChildren;
       this.loaded = true;
@@ -56,6 +69,19 @@ export default class NestedPostChildren extends Component {
       this,
       this._onChildCreated
     );
+    this._reportToCache();
+  }
+
+  _reportToCache() {
+    if (!this.loaded || !this.args.fetchedChildrenCache) {
+      return;
+    }
+    this.args.fetchedChildrenCache.set(this.args.parentPostNumber, {
+      childNodes: this.childNodes,
+      page: this.page,
+      hasMore: this.hasMore,
+      fetchedFromServer: this._fetchedFromServer,
+    });
   }
 
   _onChildCreated({ post, parentPostNumber }) {
@@ -72,6 +98,7 @@ export default class NestedPostChildren extends Component {
 
     this.childNodes = [{ post, children: [] }, ...this.childNodes];
     this.loaded = true;
+    this._reportToCache();
   }
 
   get childDepth() {
@@ -109,6 +136,7 @@ export default class NestedPostChildren extends Component {
       this.hasMore = data.has_more || false;
       this.loaded = true;
       this._fetchedFromServer = true;
+      this._reportToCache();
     } catch (e) {
       popupAjaxError(e);
     } finally {
@@ -152,6 +180,7 @@ export default class NestedPostChildren extends Component {
 
       this.page = data.page;
       this.hasMore = data.has_more || false;
+      this._reportToCache();
     } catch (e) {
       popupAjaxError(e);
     } finally {
@@ -185,6 +214,9 @@ export default class NestedPostChildren extends Component {
             @unhighlightParentLine={{@unhighlightParentLine}}
             @parentLineHighlighted={{@parentLineHighlighted}}
             @postScreenTracker={{@postScreenTracker}}
+            @expansionState={{@expansionState}}
+            @fetchedChildrenCache={{@fetchedChildrenCache}}
+            @scrollAnchor={{@scrollAnchor}}
           />
         {{/each}}
 

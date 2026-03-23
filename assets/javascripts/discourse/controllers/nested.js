@@ -18,6 +18,7 @@ export default class NestedController extends Controller {
   @service dialog;
   @service currentUser;
   @service messageBus;
+  @service nestedViewCache;
   @service router;
 
   @tracked topic;
@@ -40,6 +41,18 @@ export default class NestedController extends Controller {
   @tracked editingTopic = false;
   @tracked pinnedPostNumber = null;
   queryParams = ["sort", "post_number", "context"];
+
+  // Externalized expansion state: postNumber → { expanded, collapsed }
+  // Components read on construction, write on toggle.
+  // Persisted across back/forward navigations via NestedViewCache.
+  expansionState = new Map();
+
+  // Cache of dynamically loaded children: postNumber → { childNodes, page, hasMore, fetchedFromServer }
+  // Populated by NestedPostChildren on every mutation, read on restoration.
+  fetchedChildrenCache = new Map();
+
+  // Scroll anchor for cache restoration: { postNumber, offsetFromTop }
+  scrollAnchor = null;
 
   quoteState = new QuoteState();
 
@@ -110,6 +123,7 @@ export default class NestedController extends Controller {
 
   @action
   viewFullThread() {
+    this.nestedViewCache.useNextTransition();
     this.router.transitionTo("nested", this.topic.slug, this.topic.id, {
       queryParams: { sort: this.sort, post_number: null, context: null },
     });

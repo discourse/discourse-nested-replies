@@ -119,6 +119,9 @@ export default class NestedView extends Component {
             @showFlags={{@showFlags}}
             @showHistory={{@showHistory}}
             @postScreenTracker={{@postScreenTracker}}
+            @expansionState={{@expansionState}}
+            @fetchedChildrenCache={{@fetchedChildrenCache}}
+            @scrollAnchor={{@scrollAnchor}}
           />
         {{else}}
           <div class="nested-view__empty">

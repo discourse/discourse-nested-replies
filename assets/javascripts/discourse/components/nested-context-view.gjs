@@ -147,6 +147,9 @@ export default class NestedContextView extends Component {
               @showFlags={{@showFlags}}
               @showHistory={{@showHistory}}
               @postScreenTracker={{@postScreenTracker}}
+              @expansionState={{@expansionState}}
+              @fetchedChildrenCache={{@fetchedChildrenCache}}
+              @scrollAnchor={{@scrollAnchor}}
             />
           {{/each}}
         </div>

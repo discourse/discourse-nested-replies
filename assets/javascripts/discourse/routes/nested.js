@@ -7,6 +7,7 @@ import processNode from "../lib/process-node";
 
 export default class NestedRoute extends Route {
   @service header;
+  @service nestedViewCache;
   @service screenTrack;
   @service siteSettings;
   @service store;
@@ -25,6 +26,19 @@ export default class NestedRoute extends Route {
     const { topic_id, slug, post_number } = params;
     const sort =
       params.sort || this.siteSettings.nested_replies_default_sort || "top";
+
+    const cacheKey = this.nestedViewCache.buildKey(topic_id, {
+      ...params,
+      sort,
+    });
+    if (this.nestedViewCache.consumeTraversal()) {
+      const cached = this.nestedViewCache.get(cacheKey);
+      if (cached) {
+        this._restoringFromCache = cached;
+        return cached.modelData;
+      }
+    }
+    this._restoringFromCache = null;
 
     if (post_number) {
       const queryParts = [`sort=${sort}`];
@@ -45,6 +59,18 @@ export default class NestedRoute extends Route {
   }
 
   setupController(controller, model) {
+    if (this._restoringFromCache) {
+      controller.expansionState = this._restoringFromCache.expansionState;
+      controller.fetchedChildrenCache =
+        this._restoringFromCache.fetchedChildrenCache;
+      controller.scrollAnchor = this._restoringFromCache.scrollAnchor;
+      this._restoringFromCache = null;
+    } else {
+      controller.expansionState = new Map();
+      controller.fetchedChildrenCache = new Map();
+      controller.scrollAnchor = null;
+    }
+
     controller.setProperties(model);
     controller.subscribe();
 
@@ -77,10 +103,70 @@ export default class NestedRoute extends Route {
 
   deactivate() {
     super.deactivate(...arguments);
-    this.controller.unsubscribe();
+
+    const controller = this.controller;
+    this._saveToCache(controller);
+
+    controller.unsubscribe();
     this.screenTrack.stop();
-    this.controller.postScreenTracker?.destroy();
-    this.controller.postScreenTracker = null;
+    controller.postScreenTracker?.destroy();
+    controller.postScreenTracker = null;
+  }
+
+  _saveToCache(controller) {
+    if (!controller.topic) {
+      return;
+    }
+
+    const cacheKey = this.nestedViewCache.buildKey(controller.topic.id, {
+      sort: controller.sort,
+      post_number: controller.postNumber,
+      context: controller.contextNoAncestors ? 0 : undefined,
+    });
+
+    this.nestedViewCache.save(cacheKey, {
+      modelData: {
+        topic: controller.topic,
+        opPost: controller.opPost,
+        rootNodes: controller.rootNodes,
+        page: controller.page,
+        hasMoreRoots: controller.hasMoreRoots,
+        sort: controller.sort,
+        messageBusLastId: controller.messageBusLastId,
+        pinnedPostNumber: controller.pinnedPostNumber,
+        postNumber: controller.postNumber,
+        contextMode: controller.contextMode,
+        contextChain: controller.contextChain,
+        targetPostNumber: controller.targetPostNumber,
+        contextNoAncestors: controller.contextNoAncestors,
+        ancestorsTruncated: controller.ancestorsTruncated,
+        topAncestorPostNumber: controller.topAncestorPostNumber,
+      },
+      expansionState: new Map(controller.expansionState),
+      fetchedChildrenCache: new Map(controller.fetchedChildrenCache),
+      scrollAnchor: this._findScrollAnchor(),
+    });
+  }
+
+  _findScrollAnchor() {
+    const articles = document.querySelectorAll(
+      ".nested-post [data-post-number]"
+    );
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const el of articles) {
+      const rect = el.getBoundingClientRect();
+      const distance = Math.abs(rect.top);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = {
+          postNumber: Number(el.dataset.postNumber),
+          offsetFromTop: rect.top,
+        };
+      }
+    }
+    return best;
   }
 
   _processResponse(data, params) {
