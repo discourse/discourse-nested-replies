@@ -52,7 +52,7 @@ after_initialize do
     next if post_numbers.empty?
 
     visible_types = [Post.types[:regular], Post.types[:moderator_action]]
-    visible_types << Post.types[:whisper] if topic_view.guardian.is_staff?
+    visible_types << Post.types[:whisper] if topic_view.guardian.user&.whisperer?
 
     counts =
       Post

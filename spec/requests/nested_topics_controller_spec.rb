@@ -416,6 +416,8 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
     end
 
     describe "whisper visibility" do
+      before { SiteSetting.whispers_allowed_groups = "#{Group::AUTO_GROUPS[:staff]}" }
+
       fab!(:whisper) do
         Fabricate(
           :post,
@@ -480,6 +482,8 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
     end
 
     describe "whisper reply count visibility" do
+      before { SiteSetting.whispers_allowed_groups = "#{Group::AUTO_GROUPS[:staff]}" }
+
       it "excludes whisper from reply counts for regular users" do
         root = Fabricate(:post, topic: topic, user: user, reply_to_post_number: nil)
         Fabricate(:post, topic: topic, user: user, reply_to_post_number: root.post_number)

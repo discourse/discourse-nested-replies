@@ -25,7 +25,7 @@ module ::DiscourseNestedReplies
 
     def visible_post_types
       types = [Post.types[:regular], Post.types[:moderator_action]]
-      types << Post.types[:whisper] if guardian.is_staff?
+      types << Post.types[:whisper] if guardian.user&.whisperer?
       types
     end
 
@@ -218,7 +218,7 @@ module ::DiscourseNestedReplies
     def total_descendant_counts(post_ids)
       return {} if post_ids.empty?
 
-      if guardian.is_staff?
+      if guardian.user&.whisperer?
         NestedViewPostStat
           .where(post_id: post_ids.uniq)
           .pluck(:post_id, :total_descendant_count)
