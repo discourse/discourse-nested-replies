@@ -195,18 +195,6 @@ export default apiInitializer((api) => {
       return;
     }
 
-    // If we already know this topic is nested, redirect immediately
-    if (nestedTopicIds.has(topicId)) {
-      transition.abort();
-      const nearPost = transition.to?.params?.nearPost;
-      const queryParams = {};
-      if (nearPost) {
-        queryParams.post_number = nearPost;
-      }
-      router.transitionTo("nested", slug, topicId, { queryParams });
-      return;
-    }
-
     // Already checked this topic recently and it wasn't nested — let it through
     const checkedAt = checkedTopicIds.get(topicId);
     if (checkedAt && Date.now() - checkedAt < CHECKED_TOPIC_TTL_MS) {
@@ -227,7 +215,7 @@ export default apiInitializer((api) => {
     const fromRoute = router.currentRouteName;
     transition.abort();
 
-    ajax(`/t/${topicId}.json`, { data: { track_visit: false } })
+    ajax(`/nested/check/${topicId}.json`)
       .then((data) => {
         // Bail if user navigated away during the async lookup
         if (router.currentRouteName !== fromRoute) {

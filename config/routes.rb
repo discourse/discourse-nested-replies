@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 DiscourseNestedReplies::Engine.routes.draw do
+  get "/nested/check/:topic_id" => "nested_topics#check", :constraints => { topic_id: /\d+/ }
+
   scope "/nested/:slug/:topic_id", constraints: { topic_id: /\d+/ } do
     get "/" => "nested_topics#respond"
     get "/roots" => "nested_topics#roots"
