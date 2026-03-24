@@ -7,6 +7,7 @@ DiscourseNestedReplies::Engine.routes.draw do
     get "/children/:post_number" => "nested_topics#children"
     get "/context/:post_number" => "nested_topics#context"
     put "/pin" => "nested_topics#pin"
+    put "/toggle" => "nested_topics#toggle"
   end
 end
 

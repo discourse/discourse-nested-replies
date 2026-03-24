@@ -20,6 +20,8 @@ RSpec.describe "Nested view category default" do
     SiteSetting.nested_replies_enabled = true
     nested_category.custom_fields[DiscourseNestedReplies::CATEGORY_DEFAULT_FIELD] = true
     nested_category.save_custom_fields
+    topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = true
+    topic.save_custom_fields
   end
 
   describe "category settings UI" do

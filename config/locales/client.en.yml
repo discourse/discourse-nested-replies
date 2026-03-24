@@ -36,6 +36,9 @@ en:
       pinned_reply: "Pinned"
       pin_reply: "Pin to top"
       unpin_reply: "Unpin"
+      topic_admin_menu:
+        enable_nested_replies: "Enable nested replies"
+        disable_nested_replies: "Disable nested replies"
       context:
         banner: "You are viewing a single thread from this topic."
         view_full_topic: "View full topic"

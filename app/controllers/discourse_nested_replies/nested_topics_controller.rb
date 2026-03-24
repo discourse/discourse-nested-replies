@@ -252,6 +252,19 @@ module ::DiscourseNestedReplies
       render json: { pinned_post_number: post_number }
     end
 
+    # PUT /nested/:slug/:topic_id/toggle
+    # Staff-only: enable or disable nested replies for the topic.
+    def toggle
+      guardian.ensure_can_edit!(@topic)
+      raise Discourse::InvalidAccess unless guardian.is_staff?
+
+      enabled = params[:enabled].to_s == "true"
+      @topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = enabled
+      @topic.save_custom_fields
+
+      render json: { is_nested_view: enabled }
+    end
+
     private
 
     def ensure_nested_replies_enabled

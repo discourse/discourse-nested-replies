@@ -19,6 +19,8 @@ RSpec.describe "View as nested button" do
     SiteSetting.nested_replies_enabled = true
     nested_category.custom_fields[DiscourseNestedReplies::CATEGORY_DEFAULT_FIELD] = true
     nested_category.save_custom_fields
+    nested_topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = true
+    nested_topic.save_custom_fields
     sign_in(user)
   end
 
@@ -37,8 +39,9 @@ RSpec.describe "View as nested button" do
       expect(nested_view).to have_view_as_nested_link
     end
 
-    it "still shows the link when nested_replies_default is enabled globally" do
-      SiteSetting.nested_replies_default = true
+    it "still shows the link when topic has is_nested_view field" do
+      topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = true
+      topic.save_custom_fields
 
       page.visit("/t/#{topic.slug}/#{topic.id}?flat=1")
 

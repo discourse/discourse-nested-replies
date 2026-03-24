@@ -1,6 +1,5 @@
 import { ajax } from "discourse/lib/ajax";
 import { apiInitializer } from "discourse/lib/api";
-import Category from "discourse/models/category";
 import nestedPostUrl from "../lib/nested-post-url";
 
 const TOPIC_URL_RE = /^\/t\/([^/]+)\/(\d+)(?:\/(\d+))?(?:\?(.*))?$/;
@@ -13,29 +12,35 @@ function buildNestedPath(slug, topicId, postNumber) {
   return path;
 }
 
-function isNestedDefault(siteSettings, categoryId) {
-  if (siteSettings.nested_replies_default) {
-    return true;
-  }
-
-  if (categoryId) {
-    const category = Category.findById(categoryId);
-    if (category?.nested_replies_default) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 export default apiInitializer((api) => {
   const siteSettings = api.container.lookup("service:site-settings");
   const router = api.container.lookup("service:router");
   const appEvents = api.container.lookup("service:app-events");
-  const topicTrackingState = api.container.lookup(
-    "service:topic-tracking-state"
-  );
   let composerSaveInfo = null;
+
+  // Tracks which topic IDs have is_nested_view, populated as topics
+  // flow through topic lists and topic view responses.
+  const nestedTopicIds = new Set();
+
+  api.registerValueTransformer(
+    "topic-list-item-class",
+    ({ value, context }) => {
+      if (context.topic?.is_nested_view) {
+        nestedTopicIds.add(context.topic.id);
+      }
+      return value;
+    }
+  );
+
+  api.registerValueTransformer(
+    "latest-topic-list-item-class",
+    ({ value, context }) => {
+      if (context.topic?.is_nested_view) {
+        nestedTopicIds.add(context.topic.id);
+      }
+      return value;
+    }
+  );
 
   appEvents.on("composer:saved", () => {
     if (!siteSettings.nested_replies_enabled) {
@@ -86,7 +91,7 @@ export default apiInitializer((api) => {
       }
 
       const { topic } = context;
-      if (isNestedDefault(siteSettings, topic.category_id)) {
+      if (topic.is_nested_view) {
         const slug = topic.slug || "topic";
         return `/nested/${slug}/${topic.id}`;
       }
@@ -143,15 +148,7 @@ export default apiInitializer((api) => {
 
     const id = parseInt(topicId, 10);
 
-    // Look up category from topic tracking state (most reliable source)
-    // or fall back to session topic list for discovery-loaded topics.
-    let categoryId;
-    const trackedState = topicTrackingState.findState(id);
-    if (trackedState) {
-      categoryId = trackedState.category_id;
-    }
-
-    if (isNestedDefault(siteSettings, categoryId)) {
+    if (nestedTopicIds.has(id)) {
       return buildNestedPath(slug, topicId, postNumber);
     }
 
@@ -159,10 +156,9 @@ export default apiInitializer((api) => {
   });
 
   // Fallback: if a topic URL wasn't intercepted by the route-to-url
-  // transformer (e.g. direct URL entry where the topic isn't in tracking
-  // state yet), intercept before the topic route's model hook runs.
-  // When the topic isn't in tracking state, abort and fetch topic info
-  // to determine the category before deciding which view to load.
+  // transformer (e.g. direct URL entry where the topic isn't known to
+  // be nested yet), intercept before the topic route's model hook runs
+  // and fetch topic info to check the is_nested_view field.
   const checkedTopicIds = new Map();
   const CHECKED_TOPIC_TTL_MS = 60_000;
 
@@ -199,12 +195,8 @@ export default apiInitializer((api) => {
       return;
     }
 
-    const tracked = topicTrackingState.findState(topicId);
-    if (tracked) {
-      if (!isNestedDefault(siteSettings, tracked.category_id)) {
-        return;
-      }
-
+    // If we already know this topic is nested, redirect immediately
+    if (nestedTopicIds.has(topicId)) {
       transition.abort();
       const nearPost = transition.to?.params?.nearPost;
       const queryParams = {};
@@ -215,8 +207,7 @@ export default apiInitializer((api) => {
       return;
     }
 
-    // Topic not in tracking state (e.g. direct URL entry). Abort, look
-    // up the category via a lightweight request, then redirect or resume.
+    // Already checked this topic recently and it wasn't nested — let it through
     const checkedAt = checkedTopicIds.get(topicId);
     if (checkedAt && Date.now() - checkedAt < CHECKED_TOPIC_TTL_MS) {
       return;
@@ -243,7 +234,8 @@ export default apiInitializer((api) => {
           return;
         }
 
-        if (isNestedDefault(siteSettings, data.category_id)) {
+        if (data.is_nested_view) {
+          nestedTopicIds.add(topicId);
           const queryParams = {};
           const nearPost = transition.to?.params?.nearPost;
           if (nearPost) {
