@@ -891,4 +891,78 @@ RSpec.describe DiscourseNestedReplies::NestedTopicsController, type: :request do
       end
     end
   end
+
+  describe "GET check" do
+    def check_url(topic)
+      "/nested/check/#{topic.id}.json"
+    end
+
+    it "returns true when topic has nested view enabled" do
+      topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = true
+      topic.save_custom_fields
+
+      sign_in(user)
+      get check_url(topic)
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["is_nested_view"]).to eq(true)
+    end
+
+    it "returns false when topic does not have nested view enabled" do
+      sign_in(user)
+      get check_url(topic)
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["is_nested_view"]).to eq(false)
+    end
+
+    it "returns 403 for a private topic the user cannot see" do
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      private_topic = Fabricate(:topic, category: private_category)
+
+      sign_in(user)
+      get check_url(private_topic)
+      expect(response.status).to eq(403)
+    end
+
+    it "returns 404 when plugin is disabled" do
+      SiteSetting.nested_replies_enabled = false
+      sign_in(user)
+      get check_url(topic)
+      expect(response.status).to eq(404)
+    end
+  end
+
+  describe "PUT toggle" do
+    def toggle_url(topic)
+      "/nested/#{topic.slug}/#{topic.id}/toggle.json"
+    end
+
+    it "returns 403 for non-staff users" do
+      sign_in(user)
+      put toggle_url(topic), params: { enabled: true }
+      expect(response.status).to eq(403)
+    end
+
+    it "allows staff to enable nested view" do
+      sign_in(admin)
+      put toggle_url(topic), params: { enabled: true }
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["is_nested_view"]).to eq(true)
+
+      topic.reload
+      expect(topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD]).to eq(true)
+    end
+
+    it "allows staff to disable nested view" do
+      topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = true
+      topic.save_custom_fields
+
+      sign_in(admin)
+      put toggle_url(topic), params: { enabled: false }
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["is_nested_view"]).to eq(false)
+
+      topic.reload
+      expect(topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD]).to eq(false)
+    end
+  end
 end

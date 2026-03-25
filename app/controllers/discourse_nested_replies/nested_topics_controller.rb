@@ -5,11 +5,25 @@ module ::DiscourseNestedReplies
     requires_plugin PLUGIN_NAME
 
     before_action :ensure_nested_replies_enabled
-    before_action :find_topic, except: [:respond]
+    before_action :find_topic, except: %i[respond check]
 
     # Serves the Ember app shell for hard refreshes on /nested/:slug/:topic_id
     def respond
       render
+    end
+
+    # GET /nested/check/:topic_id
+    # Lightweight endpoint for the frontend redirect logic.
+    # Returns only the nested view flag without loading posts or full TopicView.
+    def check
+      topic = Topic.find_by(id: params[:topic_id].to_i)
+      raise Discourse::NotFound unless topic
+      guardian.ensure_can_see!(topic)
+
+      render json: {
+               is_nested_view:
+                 !!topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD],
+             }
     end
 
     # GET /nested/:slug/:topic_id/roots
@@ -250,6 +264,19 @@ module ::DiscourseNestedReplies
       @topic.save_custom_fields
 
       render json: { pinned_post_number: post_number }
+    end
+
+    # PUT /nested/:slug/:topic_id/toggle
+    # Staff-only: enable or disable nested replies for the topic.
+    def toggle
+      guardian.ensure_can_edit!(@topic)
+      raise Discourse::InvalidAccess unless guardian.is_staff?
+
+      enabled = params[:enabled].to_s == "true"
+      @topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = enabled
+      @topic.save_custom_fields
+
+      render json: { is_nested_view: enabled }
     end
 
     private

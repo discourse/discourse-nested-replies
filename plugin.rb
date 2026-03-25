@@ -17,6 +17,7 @@ module ::DiscourseNestedReplies
   PLUGIN_NAME = "discourse-nested-replies"
   CATEGORY_DEFAULT_FIELD = "nested_replies_default_for_category"
   PINNED_POST_NUMBER_FIELD = "nested_replies_pinned_post_number"
+  TOPIC_NESTED_VIEW_FIELD = "nested"
 end
 
 require_relative "lib/discourse_nested_replies/engine"
@@ -93,6 +94,35 @@ after_initialize do
     DiscourseNestedReplies::PINNED_POST_NUMBER_FIELD,
     staff_only: true,
   )
+
+  # --- Topic-level nested view field ---
+  # Each topic carries its own "nested" flag so the frontend can decide
+  # which view to render without looking up category settings every time.
+  register_topic_custom_field_type(DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD, :boolean)
+  add_preloaded_topic_list_custom_field(DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD)
+
+  add_to_serializer(:topic_list_item, :is_nested_view) do
+    object.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD]
+  end
+
+  add_to_serializer(:topic_view, :is_nested_view) do
+    object.topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD]
+  end
+
+  # Auto-set the nested field on new topics when the category or global
+  # setting calls for nested view.
+  on(:topic_created) do |topic, _opts, _user|
+    next unless SiteSetting.nested_replies_enabled
+
+    is_nested =
+      SiteSetting.nested_replies_default ||
+        topic.category&.custom_fields&.dig(DiscourseNestedReplies::CATEGORY_DEFAULT_FIELD)
+
+    if is_nested
+      topic.custom_fields[DiscourseNestedReplies::TOPIC_NESTED_VIEW_FIELD] = true
+      topic.save_custom_fields
+    end
+  end
 
   # --- Preserve ?post_number through URL canonicalization redirects ---
   register_modifier(:redirect_to_correct_topic_additional_query_parameters) do |params|
